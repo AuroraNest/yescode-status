@@ -143,10 +143,11 @@ ipcMain.handle('resize-window', (_event, height: number) => {  // 2025年08月02
     // 2025年08月02日16时54分12秒有claude修改以下代码
     // 2025年08月02日17时09分23秒有claude修改以下代码
     // 2025年08月02日17时43分12秒有claude修改以下代码
+    // 2025年08月02日16时57分11秒有claude修改以下代码
     // 如果高度很大（比如500），说明是要显示设置模态框，需要特别处理
     if (height >= 500) {
-      const modalWidth = 450  // 2025年08月02日17时45分12秒有claude修改 - 减小宽度
-      const modalHeight = Math.min(900, screenHeight - 100)  // 非常大的高度，但不超过屏幕
+      const modalWidth = 420  // 设置模态框专用宽度
+      const modalHeight = Math.min(850, screenHeight - 50)  // 设置模态框专用高度
       
       win.setBounds({
         x: Math.floor((screenWidth - modalWidth) / 2),  // 水平居中
@@ -155,17 +156,20 @@ ipcMain.handle('resize-window', (_event, height: number) => {  // 2025年08月02
         height: modalHeight
       })
     } else {
+    // 2025年08月02日16时57分11秒claude结束操作以上代码
     // 2025年08月02日17时43分12秒claude结束操作以上代码
     // 2025年08月02日17时28分45秒claude结束操作以上代码
     // 2025年08月02日17时22分34秒claude结束操作以上代码
       // 2025年08月02日17时06分34秒有claude修改以下代码
-      // 正常的悬浮栏大小 - 保持当前位置，只改变高度
+      // 2025年08月02日16时57分11秒有claude修改以下代码
+      // 正常的悬浮栏大小 - 恢复到固定宽度和指定高度
       win.setBounds({
-        x: currentBounds.x,
-        y: currentBounds.y,  // 保持当前Y位置
-        width: currentBounds.width,
+        x: savedPosition.x || Math.floor((screenWidth - 300) / 2),  // 使用保存的位置或居中
+        y: savedPosition.y || 0,  // 使用保存的Y位置或顶部
+        width: 300,  // 恢复到悬浮栏的固定宽度
         height: height
       })
+      // 2025年08月02日16时57分11秒claude结束操作以上代码
       // 2025年08月02日17时06分34秒claude结束操作以上代码
     }
     // 2025年08月02日16时54分12秒claude结束操作以上代码

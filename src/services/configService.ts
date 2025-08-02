@@ -43,6 +43,7 @@ export class ConfigService {
     this.loadPreferences()
   }
 
+  // 2025年08月02日16时57分11秒有claude修改以下代码
   // 加载应用配置
   private loadConfig() {
     try {
@@ -50,17 +51,18 @@ export class ConfigService {
       if (savedConfig) {
         const parsed = JSON.parse(savedConfig)
         Object.assign(this.config, parsed)
-        this.isConfigured.value = !!this.config.apiToken
-        // 2025年08月02日16时51分32秒有claude修改以下代码
-        // console.debug("claude-code打印调试日志：配置加载成功", this.config)
-        // 2025年08月02日16时51分32秒claude结束操作以上代码
+        // 确保响应式状态正确设置
+        this.isConfigured.value = !!this.config.apiToken && this.config.apiToken.trim() !== ''
+        console.debug("claude-code打印调试日志：配置加载成功", {
+          config: this.config,
+          isConfigured: this.isConfigured.value
+        })
       }
     } catch (error) {
-      // 2025年08月02日16时51分32秒有claude修改以下代码
-      // console.error('加载配置失败:', error)
-      // 2025年08月02日16时51分32秒claude结束操作以上代码
+      console.error('加载配置失败:', error)
     }
   }
+  // 2025年08月02日16时57分11秒claude结束操作以上代码
 
   // 加载用户偏好
   private loadPreferences() {
@@ -80,23 +82,26 @@ export class ConfigService {
     }
   }
 
+  // 2025年08月02日16时57分11秒有claude修改以下代码
   // 保存应用配置
   public saveConfig(newConfig: Partial<AppConfig>) {
     Object.assign(this.config, newConfig)
-    this.isConfigured.value = !!this.config.apiToken
+    
+    // 确保响应式状态正确更新
+    this.isConfigured.value = !!this.config.apiToken && this.config.apiToken.trim() !== ''
     
     try {
       localStorage.setItem('floating-bar-config', JSON.stringify(this.config))
-      // 2025年08月02日16时51分32秒有claude修改以下代码
-      // console.debug("claude-code打印调试日志：配置保存成功", this.config)
-      // 2025年08月02日16时51分32秒claude结束操作以上代码
+      console.debug("claude-code打印调试日志：配置保存成功", {
+        config: this.config,
+        isConfigured: this.isConfigured.value
+      })
     } catch (error) {
-      // 2025年08月02日16时51分32秒有claude修改以下代码
-      // console.error('保存配置失败:', error)
-      // 2025年08月02日16时51分32秒claude结束操作以上代码
+      console.error('保存配置失败:', error)
       throw error
     }
   }
+  // 2025年08月02日16时57分11秒claude结束操作以上代码
 
   // 保存用户偏好
   public savePreferences(newPrefs: Partial<UserPreferences>) {

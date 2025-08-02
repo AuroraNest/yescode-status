@@ -72,14 +72,17 @@ const testConnection = async () => {
   }
 }
 
+// 2025年08月02日16时57分11秒有claude修改以下代码
 // 保存配置
 const saveConfig = () => {
   if (!validateForm()) {
     return
   }
   
+  console.debug("claude-code打印调试日志：准备保存配置", formData)
   emit('save', formData)
 }
+// 2025年08月02日16时57分11秒claude结束操作以上代码
 
 // 关闭设置
 const close = () => {
@@ -251,7 +254,7 @@ const isFormValid = computed(() => {
   background: #2a2a2a;
   border-radius: 12px;
   width: 95%;
-  max-width: 420px;  /* 2025年08月02日17时45分32秒有claude修改 - 减小最大宽度 */
+  max-width: 400px;  /* 2025年08月02日17时45分32秒有claude修改 - 减小最大宽度 */
   /* 完全移除所有高度限制，确保内容完整显示！ */
   height: auto;
   max-height: none;   /* 移除最大高度限制！ */

@@ -274,9 +274,16 @@ const handleStatusClick = async (event: MouseEvent) => {
 // 2025年08月02日17时05分45秒claude结束操作以上代码
 
 // 2025年08月02日18时30分22秒有claude修改以下代码
+// 2025年08月02日16时57分11秒有claude修改以下代码
 const saveSettings = async (newConfig: any) => {
   try {
     configService.saveConfig(newConfig)
+    
+    // 强制更新配置状态，确保响应式数据同步
+    console.debug("claude-code打印调试日志：配置保存后状态", {
+      isConfigured: configService.isConfigured.value,
+      apiToken: configService.config.apiToken
+    })
     
     // 重新设置定时刷新器，使用新的刷新间隔
     if (refreshInterval) {
@@ -285,11 +292,14 @@ const saveSettings = async (newConfig: any) => {
     refreshInterval = setInterval(fetchApiData, configService.config.refreshInterval * 1000)
     
     await closeSettings()
-    await fetchApiData() // 重新获取数据
+    
+    // 立即获取新数据，确保界面更新
+    await fetchApiData()
   } catch (err: any) {
     error.value = err.message || '保存配置失败'
   }
 }
+// 2025年08月02日16时57分11秒claude结束操作以上代码
 // 2025年08月02日18时30分22秒claude结束操作以上代码
 
 // 刷新数据
