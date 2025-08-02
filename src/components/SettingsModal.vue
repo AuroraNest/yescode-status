@@ -224,7 +224,7 @@ const isFormValid = computed(() => {
 </template>
 
 <style scoped>
-/* 2025年08月02日17时33分12秒有claude修改以下代码 */
+/* 2025年08月02日17时53分05秒有claude修改以下代码 */
 .settings-overlay {
   position: fixed;
   top: 0;
@@ -233,25 +233,26 @@ const isFormValid = computed(() => {
   bottom: 0;
   /* 移除 min-height 限制 */
   width: 100%;
-  height: 100%;
+  height: 100vh;     /* 2025年08月02日17时53分05秒有claude修改 - 使用vh确保占满视口高度 */
   background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(4px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;  /* 2025年08月02日18时19分22秒有claude修改 - 改为顶部对齐，减少底部空白 */
   justify-content: center;
   z-index: 9999;
   pointer-events: all;
   overflow-y: auto;  /* 允许滚动 */
+  padding: 20px 0 5px 0;  /* 2025年08月02日18时19分45秒有claude修改 - 顶部保持间距，底部减少 */
 }
-/* 2025年08月02日17时33分12秒claude结束操作以上代码 */
+/* 2025年08月02日17时53分05秒claude结束操作以上代码 */
 
-/* 2025年08月02日17时42分01秒有claude修改以下代码 */
+/* 2025年08月02日17时52分42秒有claude修改以下代码 */
 .settings-modal {
   background: #2a2a2a;
   border-radius: 12px;
   width: 95%;
   max-width: 420px;  /* 2025年08月02日17时45分32秒有claude修改 - 减小最大宽度 */
-  /* 完全移除所有高度限制！ */
+  /* 完全移除所有高度限制，确保内容完整显示！ */
   height: auto;
   max-height: none;   /* 移除最大高度限制！ */
   min-height: auto;   /* 移除最小高度限制！ */
@@ -263,9 +264,9 @@ const isFormValid = computed(() => {
   pointer-events: all;
   display: flex;
   flex-direction: column;
-  margin: 20px 0;
+  margin: 0;         /* 2025年08月02日17时53分25秒有claude修改 - 移除margin，由overlay的padding控制间距 */
 }
-/* 2025年08月02日17时42分01秒claude结束操作以上代码 */
+/* 2025年08月02日17时52分42秒claude结束操作以上代码 */
 
 .modal-header {
   display: flex;

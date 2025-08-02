@@ -222,7 +222,7 @@ const openSettings = async () => {
   
   // 在 Electron 中先扩大窗口
   if (isElectron()) {
-    await resizeWindow(500)  // 先调整窗口大小
+    await resizeWindow(600)  // 2025年08月02日17时52分15秒有claude修改 - 增加窗口高度以完整显示设置页面
     
     // 等待窗口调整完成和 Vue 重新渲染
     await new Promise(resolve => setTimeout(resolve, 100))
@@ -271,15 +271,24 @@ const handleStatusClick = async (event: MouseEvent) => {
 }
 // 2025年08月02日17时05分45秒claude结束操作以上代码
 
+// 2025年08月02日18时30分22秒有claude修改以下代码
 const saveSettings = async (newConfig: any) => {
   try {
     configService.saveConfig(newConfig)
+    
+    // 重新设置定时刷新器，使用新的刷新间隔
+    if (refreshInterval) {
+      clearInterval(refreshInterval)
+    }
+    refreshInterval = setInterval(fetchApiData, configService.config.refreshInterval * 1000)
+    
     await closeSettings()
     await fetchApiData() // 重新获取数据
   } catch (err: any) {
     error.value = err.message || '保存配置失败'
   }
 }
+// 2025年08月02日18时30分22秒claude结束操作以上代码
 
 // 刷新数据
 const refreshData = async () => {
@@ -345,12 +354,14 @@ const quitApp = async () => {
 </script>
 
 <template>
+  <!-- 2025年08月02日18时03分22秒有claude修改以下代码 -->
   <div 
     class="floating-bar"
-    :class="{ 'expanded': isExpanded }"
+    :class="{ 'expanded': isExpanded, 'settings-mode': showSettings }"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
   >
+  <!-- 2025年08月02日18时03分22秒claude结束操作以上代码 -->
     <!-- 默认收起状态 -->
     <div class="compact-view" v-show="!isExpanded">
       <div class="drag-area" @mousedown="handleDragStart">
@@ -474,10 +485,21 @@ const quitApp = async () => {
   border-color: rgba(255, 255, 255, 0.3);
 }
 
+/* 2025年08月02日18时01分32秒有claude修改以下代码 */
 .floating-bar.expanded {
   height: 120px;
   box-shadow: 0 6px 30px rgba(0, 0, 0, 0.8);
 }
+
+/* 2025年08月02日18时18分45秒有claude紧急修复以下代码 */
+/* 设置模式下移除高度限制，让设置页面完整显示 */
+.floating-bar.settings-mode {
+  height: 100vh !important;     /* 恢复撑满视口，确保设置页面可见 */
+  min-height: 100vh !important; /* 保持最小高度，确保窗口展开 */
+  max-height: none !important;
+}
+/* 2025年08月02日18时18分45秒claude结束操作以上代码 */
+/* 2025年08月02日18时01分32秒claude结束操作以上代码 */
 
 .compact-view {
   display: flex;
