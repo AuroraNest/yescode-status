@@ -31,3 +31,6 @@ Thumbs.db
 # Temporary
 .tmp/
 temp/
+
+# Claude configuration
+CLAUDE.md
