@@ -32,6 +32,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 退出应用
   quitApp: () => ipcRenderer.invoke('quit-app'),
   
+  // 2025年08月02日16时56分23秒有claude添加以下代码
+  // 精准移动窗口
+  moveWindow: (x: number, y: number) => ipcRenderer.invoke('move-window', x, y),
+  
+  // 获取窗口位置
+  getWindowPosition: () => ipcRenderer.invoke('get-window-position'),
+  // 2025年08月02日16时56分23秒claude结束操作以上代码
+  
   // 监听主进程消息
   onMainMessage: (callback: (data: any) => void) => {
     ipcRenderer.on('main-process-message', (event, data) => callback(data))

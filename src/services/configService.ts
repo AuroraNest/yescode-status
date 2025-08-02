@@ -51,10 +51,14 @@ export class ConfigService {
         const parsed = JSON.parse(savedConfig)
         Object.assign(this.config, parsed)
         this.isConfigured.value = !!this.config.apiToken
-        console.debug("claude-code打印调试日志：配置加载成功", this.config)
+        // 2025年08月02日16时51分32秒有claude修改以下代码
+        // console.debug("claude-code打印调试日志：配置加载成功", this.config)
+        // 2025年08月02日16时51分32秒claude结束操作以上代码
       }
     } catch (error) {
-      console.error('加载配置失败:', error)
+      // 2025年08月02日16时51分32秒有claude修改以下代码
+      // console.error('加载配置失败:', error)
+      // 2025年08月02日16时51分32秒claude结束操作以上代码
     }
   }
 
@@ -65,10 +69,14 @@ export class ConfigService {
       if (savedPrefs) {
         const parsed = JSON.parse(savedPrefs)
         Object.assign(this.preferences, parsed)
-        console.debug("claude-code打印调试日志：偏好设置加载成功", this.preferences)
+        // 2025年08月02日16时51分32秒有claude修改以下代码
+        // console.debug("claude-code打印调试日志：偏好设置加载成功", this.preferences)
+        // 2025年08月02日16时51分32秒claude结束操作以上代码
       }
     } catch (error) {
-      console.error('加载偏好设置失败:', error)
+      // 2025年08月02日16时51分32秒有claude修改以下代码
+      // console.error('加载偏好设置失败:', error)
+      // 2025年08月02日16时51分32秒claude结束操作以上代码
     }
   }
 
@@ -79,9 +87,13 @@ export class ConfigService {
     
     try {
       localStorage.setItem('floating-bar-config', JSON.stringify(this.config))
-      console.debug("claude-code打印调试日志：配置保存成功", this.config)
+      // 2025年08月02日16时51分32秒有claude修改以下代码
+      // console.debug("claude-code打印调试日志：配置保存成功", this.config)
+      // 2025年08月02日16时51分32秒claude结束操作以上代码
     } catch (error) {
-      console.error('保存配置失败:', error)
+      // 2025年08月02日16时51分32秒有claude修改以下代码
+      // console.error('保存配置失败:', error)
+      // 2025年08月02日16时51分32秒claude结束操作以上代码
       throw error
     }
   }
@@ -92,9 +104,13 @@ export class ConfigService {
     
     try {
       localStorage.setItem('floating-bar-preferences', JSON.stringify(this.preferences))
-      console.debug("claude-code打印调试日志：偏好设置保存成功", this.preferences)
+      // 2025年08月02日16时51分32秒有claude修改以下代码
+      // console.debug("claude-code打印调试日志：偏好设置保存成功", this.preferences)
+      // 2025年08月02日16时51分32秒claude结束操作以上代码
     } catch (error) {
-      console.error('保存偏好设置失败:', error)
+      // 2025年08月02日16时51分32秒有claude修改以下代码
+      // console.error('保存偏好设置失败:', error)
+      // 2025年08月02日16时51分32秒claude结束操作以上代码
       throw error
     }
   }
@@ -122,9 +138,13 @@ export class ConfigService {
       })
       
       this.isConfigured.value = false
-      console.debug("claude-code打印调试日志：配置重置成功")
+      // 2025年08月02日16时51分32秒有claude修改以下代码
+      // console.debug("claude-code打印调试日志：配置重置成功")
+      // 2025年08月02日16时51分32秒claude结束操作以上代码
     } catch (error) {
-      console.error('重置配置失败:', error)
+      // 2025年08月02日16时51分32秒有claude修改以下代码
+      // console.error('重置配置失败:', error)
+      // 2025年08月02日16时51分32秒claude结束操作以上代码
       throw error
     }
   }

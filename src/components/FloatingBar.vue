@@ -11,7 +11,6 @@ const isLoading = ref(false) // 先设为 false，避免初始空白
 const currentTime = ref(new Date().toLocaleTimeString())
 const showSettings = ref(false)
 const error = ref('')
-const testApiToken = ref('')
 
 // API 数据
 const apiData = reactive({
@@ -48,6 +47,12 @@ const isElectron = () => {
   return window.electronAPI !== undefined
 }
 
+// 2025年08月02日16时57分11秒有claude添加以下代码
+// 拖拽相关状态
+const isDragging = ref(false)
+const dragOffset = ref({ x: 0, y: 0 })
+// 2025年08月02日16时57分11秒claude结束操作以上代码
+
 // IPC 通信函数
 const toggleMouseEvents = async (ignore: boolean) => {
   if (isElectron()) {
@@ -61,11 +66,72 @@ const resizeWindow = async (height: number) => {
   }
 }
 
+// 2025年08月02日16时57分45秒有claude添加以下代码
+// 2025年08月02日17时02分23秒有claude修改以下代码
+// 精准拖拽功能 - 优化防止与悬停冲突
+const handleDragStart = async (event: MouseEvent) => {
+  if (!isElectron() || showSettings.value) return
+  
+  event.preventDefault()
+  event.stopPropagation() // 阻止事件冒泡
+  
+  // 清除悬停定时器，防止拖拽时展开
+  if (hoverTimer) {
+    clearTimeout(hoverTimer)
+    hoverTimer = null
+  }
+  
+  isDragging.value = true
+  
+  // 获取当前窗口位置
+  const windowBounds = await window.electronAPI.getWindowPosition()
+  
+  // 计算鼠标相对于窗口的偏移
+  dragOffset.value = {
+    x: event.screenX - windowBounds.x,
+    y: event.screenY - windowBounds.y
+  }
+  
+  // 添加全局鼠标事件监听
+  document.addEventListener('mousemove', handleDragMove)
+  document.addEventListener('mouseup', handleDragEnd)
+}
+// 2025年08月02日17时02分23秒claude结束操作以上代码
+
+const handleDragMove = async (event: MouseEvent) => {
+  if (!isDragging.value || !isElectron()) return
+  
+  // 计算新的窗口位置
+  const newX = event.screenX - dragOffset.value.x
+  const newY = Math.max(0, event.screenY - dragOffset.value.y) // 确保不会拖到屏幕顶部外面
+  
+  // 移动窗口到新位置
+  await window.electronAPI.moveWindow(newX, newY)
+}
+
+const handleDragEnd = () => {
+  // 2025年08月02日17时03分11秒有claude修改以下代码
+  // 延迟设置拖拽状态，确保悬停事件不会立即触发
+  setTimeout(() => {
+    isDragging.value = false
+  }, 100)
+  
+  // 移除全局鼠标事件监听
+  document.removeEventListener('mousemove', handleDragMove)
+  document.removeEventListener('mouseup', handleDragEnd)
+  // 2025年08月02日17时03分11秒claude结束操作以上代码
+}
+// 2025年08月02日16时57分45秒claude结束操作以上代码
+
 // 悬停状态管理 - 简化版本
 let hoverTimer: NodeJS.Timeout | null = null
 
-// 鼠标悬停处理 - 使用单一的入口和出口
+// 2025年08月02日17时01分12秒有claude修改以下代码
+// 鼠标悬停处理 - 优化逻辑，避免与拖拽冲突
 const handleMouseEnter = async () => {
+  // 如果正在拖拽或设置窗口打开，不处理悬停
+  if (isDragging.value || showSettings.value) return
+  
   // 清除任何待处理的收起操作
   if (hoverTimer) {
     clearTimeout(hoverTimer)
@@ -82,32 +148,42 @@ const handleMouseEnter = async () => {
 }
 
 const handleMouseLeave = async () => {
+  // 如果正在拖拽或设置窗口打开，不处理离开
+  if (isDragging.value || showSettings.value) return
+  
   // 延迟收起，给用户操作空间
   hoverTimer = setTimeout(async () => {
-    if (isExpanded.value && !showSettings.value) { // 如果设置窗口开着就不收起
+    if (isExpanded.value && !showSettings.value && !isDragging.value) {
       console.debug("claude-code打印调试日志：收起悬浮栏")
       isExpanded.value = false
       await nextTick()
       await resizeWindow(36)
     }
-  }, 500) // 增加到500ms延迟，给用户更多反应时间
+  }, 300) // 减少延迟时间
 }
+// 2025年08月02日17时01分12秒claude结束操作以上代码
 
 // API 数据获取
 const fetchApiData = async () => {
   try {
     if (!configService.isConfigured.value) {
-      console.debug("claude-code打印调试日志：配置未完成")
+      // 2025年08月02日16时51分32秒有claude修改以下代码
+      // console.debug("claude-code打印调试日志：配置未完成")
+      // 2025年08月02日16时51分32秒claude结束操作以上代码
       isLoading.value = false
       return
     }
 
-    console.debug("claude-code打印调试日志：开始获取 API 数据")
+    // 2025年08月02日16时51分32秒有claude修改以下代码
+    // console.debug("claude-code打印调试日志：开始获取 API 数据")
+    // 2025年08月02日16时51分32秒claude结束操作以上代码
     error.value = ''
     
     const data: ApiResponse = await apiService.fetchBalance()
     
-    console.debug("claude-code打印调试日志：API 原始返回数据", data)
+    // 2025年08月02日16时51分32秒有claude修改以下代码
+    // console.debug("claude-code打印调试日志：API 原始返回数据", data)
+    // 2025年08月02日16时51分32秒claude结束操作以上代码
     
     // 更新数据
     apiData.totalBalance = data.total_balance || 0
@@ -147,10 +223,12 @@ const openSettings = async () => {
   console.debug("claude-code打印调试日志：设置后 showSettings", showSettings.value)
   console.debug("claude-code打印调试日志：是否在 Electron 环境", isElectron())
   
+  // 2025年08月02日17时15分23秒有claude修改以下代码
   // 在 Electron 中扩大窗口以容纳模态框
   if (isElectron()) {
-    await resizeWindow(600)
+    await resizeWindow(800)  // 进一步增加高度确保模态框完整显示
   }
+  // 2025年08月02日17时15分23秒claude结束操作以上代码
 }
 
 const closeSettings = async () => {
@@ -162,8 +240,15 @@ const closeSettings = async () => {
   }
 }
 
-// 处理状态文本点击
-const handleStatusClick = async () => {
+// 2025年08月02日17时05分45秒有claude修改以下代码
+// 处理状态文本点击 - 防止与拖拽冲突
+const handleStatusClick = async (event: MouseEvent) => {
+  // 阻止事件冒泡到拖拽区域
+  event.stopPropagation()
+  
+  // 如果正在拖拽，不处理点击
+  if (isDragging.value) return
+  
   console.debug("claude-code打印调试日志：状态文本被点击")
   
   // 如果未配置，打开设置
@@ -180,6 +265,7 @@ const handleStatusClick = async () => {
     }
   }
 }
+// 2025年08月02日17时05分45秒claude结束操作以上代码
 
 const saveSettings = async (newConfig: any) => {
   try {
@@ -234,25 +320,14 @@ onUnmounted(() => {
   if (hoverTimer) {
     clearTimeout(hoverTimer)
   }
+  
+  // 2025年08月02日16时58分32秒有claude添加以下代码
+  // 清理拖拽事件监听
+  document.removeEventListener('mousemove', handleDragMove)
+  document.removeEventListener('mouseup', handleDragEnd)
+  // 2025年08月02日16时58分32秒claude结束操作以上代码
 })
 
-// 保存测试配置
-const saveTestConfig = async () => {
-  if (!testApiToken.value.trim()) {
-    alert('请输入 API Token')
-    return
-  }
-  
-  configService.saveConfig({
-    apiToken: testApiToken.value,
-    apiEndpoint: 'https://co.yes.vg/api/v1/claude/balance',
-    refreshInterval: 60,
-    dailyLimit: 100
-  })
-  
-  await closeSettings()
-  await fetchApiData()
-}
 
 // 退出应用
 const quitApp = async () => {
@@ -274,7 +349,7 @@ const quitApp = async () => {
   >
     <!-- 默认收起状态 -->
     <div class="compact-view" v-show="!isExpanded">
-      <div class="drag-area">
+      <div class="drag-area" @mousedown="handleDragStart">
         <div class="status-text" @click="handleStatusClick">{{ statusText || '悬浮工具栏' }}</div>
         <div class="time">{{ currentTime }}</div>
       </div>
@@ -283,7 +358,7 @@ const quitApp = async () => {
     <!-- 展开状态 -->
     <div class="expanded-view" v-show="isExpanded">
       <div class="header">
-        <div class="drag-area expanded-drag">
+        <div class="drag-area expanded-drag" @mousedown="handleDragStart">
           <div class="title">yesCode 使用统计</div>
         </div>
         <div class="header-buttons">
@@ -353,44 +428,10 @@ const quitApp = async () => {
       @close="closeSettings" 
       @save="saveSettings" 
     />
-    
-    <!-- 简单测试模态框 -->
-    <div v-if="showSettings" class="test-modal">
-      <div class="test-modal-content">
-        <h3>🔧 简单配置测试</h3>
-        <p>如果你看到这个，说明模态框状态正常</p>
-        <input v-model="testApiToken" placeholder="输入 API Token" style="width: 100%; padding: 8px; margin: 10px 0;">
-        <div style="display: flex; gap: 10px; justify-content: flex-end;">
-          <button @click="closeSettings" style="padding: 8px 16px; background: #666; color: white; border: none; border-radius: 4px;">取消</button>
-          <button @click="saveTestConfig" style="padding: 8px 16px; background: #2196F3; color: white; border: none; border-radius: 4px;">保存</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <style scoped>
-/* 测试模态框样式 */
-.test-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
-.test-modal-content {
-  background: #333;
-  padding: 20px;
-  border-radius: 8px;
-  width: 400px;
-  color: white;
-}
 .floating-bar {
   width: 100%;
   height: 36px;
@@ -445,27 +486,33 @@ const quitApp = async () => {
   z-index: 1;
 }
 
+/* 2025年08月02日17时04分22秒有claude修改以下代码 */
 .drag-area {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
   height: 100%;
-  -webkit-app-region: drag;
+  /* 移除 -webkit-app-region: drag; 使用自定义拖拽 */
   cursor: move;
+  user-select: none; /* 防止拖拽时选中文本 */
 }
+/* 2025年08月02日17时04分22秒claude结束操作以上代码 */
 
 .expanded-drag {
   flex: 1;
   justify-content: flex-start;
 }
 
+/* 2025年08月02日17时05分01秒有claude修改以下代码 */
 .drag-area .status-text,
 .drag-area .time,
 .drag-area .title {
-  -webkit-app-region: no-drag;
+  /* 移除 -webkit-app-region: no-drag; */
   cursor: default;
+  pointer-events: auto; /* 确保可以接收点击事件 */
 }
+/* 2025年08月02日17时05分01秒claude结束操作以上代码 */
 
 .drag-area .status-text {
   cursor: pointer;

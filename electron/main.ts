@@ -93,7 +93,9 @@ function createWindow() {
       const bounds = win.getBounds()
       savedPosition.x = bounds.x
       savedPosition.y = bounds.y
-      console.log('窗口位置已保存:', savedPosition)
+      // 2025年08月02日16时51分32秒有claude修改以下代码
+      // console.log('窗口位置已保存:', savedPosition)
+      // 2025年08月02日16时51分32秒claude结束操作以上代码
     }
   })
 
@@ -136,25 +138,34 @@ ipcMain.handle('resize-window', (event, height: number) => {
     const currentBounds = win.getBounds()
     const { screen } = require('electron')
     const primaryDisplay = screen.getPrimaryDisplay()
-    const { width: screenWidth } = primaryDisplay.workAreaSize
+    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize
     
-    // 如果高度很大（比如600），说明是要显示设置，调整宽度并居中
+    // 2025年08月02日16时54分12秒有claude修改以下代码
+    // 2025年08月02日17时09分23秒有claude修改以下代码
+    // 2025年08月02日17时16分12秒有claude修改以下代码
+    // 如果高度很大（比如600），说明是要显示设置模态框，需要特别处理
     if (height > 500) {
+      const modalWidth = 650   // 更宽确保内容完整显示
+      const modalHeight = Math.min(height + 100, screenHeight - 40)  // 进一步增加高度余量
+      
       win.setBounds({
-        x: Math.floor((screenWidth - 500) / 2),
-        y: Math.floor((primaryDisplay.workAreaSize.height - height) / 2),
-        width: 500,
-        height: height
+        x: Math.floor((screenWidth - modalWidth) / 2),  // 水平居中
+        y: Math.floor((screenHeight - modalHeight) / 2),  // 垂直居中  
+        width: modalWidth,
+        height: modalHeight
       })
     } else {
-      // 正常的悬浮栏大小 - 保持当前位置，只改变大小
+      // 2025年08月02日17时06分34秒有claude修改以下代码
+      // 正常的悬浮栏大小 - 保持当前位置，只改变高度
       win.setBounds({
         x: currentBounds.x,
-        y: currentBounds.y,
-        width: currentBounds.width, // 保持当前宽度
+        y: currentBounds.y,  // 保持当前Y位置
+        width: currentBounds.width,
         height: height
       })
+      // 2025年08月02日17时06分34秒claude结束操作以上代码
     }
+    // 2025年08月02日16时54分12秒claude结束操作以上代码
   }
 })
 
@@ -162,13 +173,41 @@ ipcMain.handle('quit-app', () => {
   app.quit()
 })
 
+// 2025年08月02日16时55分45秒有claude添加以下代码
+// 添加更精准的窗口移动控制
+ipcMain.handle('move-window', (event, x: number, y: number) => {
+  if (win) {
+    const currentBounds = win.getBounds()
+    win.setBounds({
+      x: x,
+      y: y,
+      width: currentBounds.width,
+      height: currentBounds.height
+    })
+    
+    // 更新保存的位置
+    savedPosition.x = x
+    savedPosition.y = y
+  }
+})
+
+ipcMain.handle('get-window-position', () => {
+  if (win) {
+    return win.getBounds()
+  }
+  return { x: 0, y: 0, width: 0, height: 0 }
+})
+// 2025年08月02日16时55分45秒claude结束操作以上代码
+
 // 创建托盘图标
 function createTray() {
   try {
     const iconPath = path.join(process.env.VITE_PUBLIC, 'vite.svg')
     tray = new Tray(iconPath)
   } catch (error) {
-    console.log('托盘图标创建失败，使用默认图标')
+    // 2025年08月02日16时51分32秒有claude修改以下代码
+    // console.log('托盘图标创建失败，使用默认图标')
+    // 2025年08月02日16时51分32秒claude结束操作以上代码
     return
   }
   

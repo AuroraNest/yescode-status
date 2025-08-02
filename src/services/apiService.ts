@@ -42,7 +42,9 @@ export class ApiService {
         this.config = { ...this.config, ...JSON.parse(savedConfig) }
       }
     } catch (error) {
-      console.error('加载配置失败:', error)
+      // 2025年08月02日16时51分32秒有claude修改以下代码
+      // console.error('加载配置失败:', error)
+      // 2025年08月02日16时51分32秒claude结束操作以上代码
     }
   }
 
@@ -52,7 +54,9 @@ export class ApiService {
     try {
       localStorage.setItem('floating-bar-config', JSON.stringify(this.config))
     } catch (error) {
-      console.error('保存配置失败:', error)
+      // 2025年08月02日16时51分32秒有claude修改以下代码
+      // console.error('保存配置失败:', error)
+      // 2025年08月02日16时51分32秒claude结束操作以上代码
     }
   }
 
@@ -67,7 +71,9 @@ export class ApiService {
       throw new Error('API Token 未配置')
     }
 
-    console.debug("claude-code打印调试日志：发起 API 请求", this.config.apiEndpoint)
+    // 2025年08月02日16时51分32秒有claude修改以下代码
+    // console.debug("claude-code打印调试日志：发起 API 请求", this.config.apiEndpoint)
+    // 2025年08月02日16时51分32秒claude结束操作以上代码
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 10000)
@@ -90,7 +96,9 @@ export class ApiService {
     }
 
     const data = await response.json()
-    console.debug("claude-code打印调试日志：API 响应数据", data)
+    // 2025年08月02日16时51分32秒有claude修改以下代码
+    // console.debug("claude-code打印调试日志：API 响应数据", data)
+    // 2025年08月02日16时51分32秒claude结束操作以上代码
     
     return data
   }
@@ -101,7 +109,9 @@ export class ApiService {
       await this.fetchBalance()
       return true
     } catch (error) {
-      console.error('API 连接测试失败:', error)
+      // 2025年08月02日16时51分32秒有claude修改以下代码
+      // console.error('API 连接测试失败:', error)
+      // 2025年08月02日16时51分32秒claude结束操作以上代码
       return false
     }
   }

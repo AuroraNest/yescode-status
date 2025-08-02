@@ -239,12 +239,13 @@ const isFormValid = computed(() => {
   pointer-events: all;
 }
 
+/* 2025年08月02日17时11分01秒有claude修改以下代码 */
 .settings-modal {
   background: #2a2a2a;
   border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
+  width: 95%;
+  max-width: 550px;  /* 增加最大宽度 */
+  max-height: 95vh;  /* 增加最大高度 */
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
   border: 2px solid rgba(33, 150, 243, 0.5);
@@ -252,6 +253,7 @@ const isFormValid = computed(() => {
   position: relative;
   pointer-events: all;
 }
+/* 2025年08月02日17时11分01秒claude结束操作以上代码 */
 
 .modal-header {
   display: flex;
@@ -289,15 +291,19 @@ const isFormValid = computed(() => {
   color: #fff;
 }
 
+/* 2025年08月02日17时17分21秒有claude修改以下代码 */
 .modal-content {
-  padding: 20px;
-  max-height: calc(90vh - 140px);
+  padding: 16px;  /* 减少内边距 */
+  max-height: calc(98vh - 100px);  /* 进一步增加内容区域高度 */
   overflow-y: auto;
 }
+/* 2025年08月02日17时17分21秒claude结束操作以上代码 */
 
+/* 2025年08月02日17时17分01秒有claude修改以下代码 */
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 16px;  /* 减少间距 */
 }
+/* 2025年08月02日17时17分01秒claude结束操作以上代码 */
 
 .form-group label {
   display: block;
@@ -385,14 +391,16 @@ const isFormValid = computed(() => {
   border: 1px solid rgba(255, 107, 107, 0.3);
 }
 
+/* 2025年08月02日17时17分45秒有claude修改以下代码 */
 .modal-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 24px;
-  padding-top: 20px;
+  margin-top: 16px;  /* 减少顶部间距 */
+  padding-top: 16px;  /* 减少内边距 */
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
+/* 2025年08月02日17时17分45秒claude结束操作以上代码 */
 
 .action-buttons {
   display: flex;
