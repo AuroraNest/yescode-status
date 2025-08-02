@@ -449,8 +449,10 @@ const quitApp = async () => {
 </template>
 
 <style scoped>
+/* 2025年08月02日16时57分11秒有claude修改以下代码 */
 .floating-bar {
-  width: 100%;
+  width: 300px; /* 将宽度从100%改为固定380px */
+  max-width: 300px; /* 设置最大宽度 */
   height: 36px;
   background: rgba(30, 30, 30, 0.98);
   backdrop-filter: blur(10px);
@@ -464,7 +466,9 @@ const quitApp = async () => {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
   position: relative;
   z-index: 10;
+  margin: 0 auto; /* 水平居中 */
 }
+/* 2025年08月02日16时57分11秒claude结束操作以上代码 */
 
 /* 悬停时增加一个不可见的扩展区域 */
 .floating-bar::before {
