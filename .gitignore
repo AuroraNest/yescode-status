@@ -34,3 +34,4 @@ temp/
 
 # Claude configuration
 CLAUDE.md
+.claude/
