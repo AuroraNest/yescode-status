@@ -188,7 +188,7 @@ A: 展开悬浮栏 → 点击设置 → 点击"🗑️ 重置配置"
 
 ## 🙏 致谢
 
-- [yesCode](https://yes.vg/) - 提供 Claude API 服务
+- [yesCode](https://co.yes.vg/register?ref=SYSAJQK0/) - 提供 Claude API 服务
 - [Electron](https://electronjs.org/) - 跨平台桌面应用框架
 - [Vue.js](https://vuejs.org/) - 渐进式 JavaScript 框架
 
