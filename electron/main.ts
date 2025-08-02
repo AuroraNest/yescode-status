@@ -135,7 +135,6 @@ ipcMain.handle('toggle-mouse-events', (_event, ignore: boolean) => {  // 2025年
 
 ipcMain.handle('resize-window', (_event, height: number) => {  // 2025年08月02日18时39分32秒有claude修改 - 标记未使用参数
   if (win) {
-    const currentBounds = win.getBounds()
     const { screen } = require('electron')
     const primaryDisplay = screen.getPrimaryDisplay()
     const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize
