@@ -3,6 +3,8 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "description": "一个状态栏小工具",
+  "author": "李先生",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build && electron-builder",

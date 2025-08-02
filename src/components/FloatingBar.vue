@@ -54,11 +54,13 @@ const dragOffset = ref({ x: 0, y: 0 })
 // 2025年08月02日16时57分11秒claude结束操作以上代码
 
 // IPC 通信函数
-const toggleMouseEvents = async (ignore: boolean) => {
-  if (isElectron()) {
-    await window.electronAPI.toggleMouseEvents(ignore)
-  }
-}
+// 2025年08月02日18时37分15秒有claude修改以下代码 - 暂时注释未使用的函数
+// const toggleMouseEvents = async (ignore: boolean) => {
+//   if (isElectron()) {
+//     await window.electronAPI.toggleMouseEvents(ignore)
+//   }
+// }
+// 2025年08月02日18时37分15秒claude结束操作以上代码
 
 const resizeWindow = async (height: number) => {
   if (isElectron()) {

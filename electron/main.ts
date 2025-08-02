@@ -127,13 +127,13 @@ app.on('activate', () => {
 
 // 2025-01-03 18:30:02 claude添加以下代码
 // IPC 通信处理
-ipcMain.handle('toggle-mouse-events', (event, ignore: boolean) => {
+ipcMain.handle('toggle-mouse-events', (_event, ignore: boolean) => {  // 2025年08月02日18时39分12秒有claude修改 - 标记未使用参数
   if (win) {
     win.setIgnoreMouseEvents(ignore, { forward: true })
   }
 })
 
-ipcMain.handle('resize-window', (event, height: number) => {
+ipcMain.handle('resize-window', (_event, height: number) => {  // 2025年08月02日18时39分32秒有claude修改 - 标记未使用参数
   if (win) {
     const currentBounds = win.getBounds()
     const { screen } = require('electron')
@@ -178,7 +178,7 @@ ipcMain.handle('quit-app', () => {
 
 // 2025年08月02日16时55分45秒有claude添加以下代码
 // 添加更精准的窗口移动控制
-ipcMain.handle('move-window', (event, x: number, y: number) => {
+ipcMain.handle('move-window', (_event, x: number, y: number) => {  // 2025年08月02日18时40分12秒有claude修改 - 标记未使用参数
   if (win) {
     const currentBounds = win.getBounds()
     win.setBounds({

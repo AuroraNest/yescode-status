@@ -1,6 +1,6 @@
 <!-- 2025-01-03 18:30:03 claude修改以下代码 -->
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'  // 2025年08月02日18时35分45秒有claude修改 - 移除未使用的reactive导入
 import FloatingBar from './components/FloatingBar.vue'
 
 // 获取当前时间

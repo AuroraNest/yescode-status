@@ -4,7 +4,7 @@ import { ref, reactive, computed } from 'vue'
 import { configService } from '../services/configService'
 import { apiService } from '../services/apiService'
 
-const props = defineProps<{
+defineProps<{  // 2025年08月02日18时36分12秒有claude修改 - 移除未使用的props变量
   visible: boolean
 }>()
 

@@ -42,7 +42,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // 监听主进程消息
   onMainMessage: (callback: (data: any) => void) => {
-    ipcRenderer.on('main-process-message', (event, data) => callback(data))
+    ipcRenderer.on('main-process-message', (_event, data) => callback(data))  // 2025年08月02日18时40分32秒有claude修改 - 标记未使用参数
   }
 })
 // 2025-01-03 18:30:05 claude结束操作以上代码
