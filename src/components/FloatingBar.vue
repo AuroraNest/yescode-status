@@ -215,21 +215,25 @@ const fetchApiData = async () => {
   }
 }
 
-// 设置相关函数
+// 2025年08月02日17时35分45秒有claude修改以下代码
+// 设置相关函数 - 关键修改：先调整窗口，再显示模态框！
 const openSettings = async () => {
   console.debug("claude-code打印调试日志：打开设置模态框")
+  
+  // 在 Electron 中先扩大窗口
+  if (isElectron()) {
+    await resizeWindow(500)  // 先调整窗口大小
+    
+    // 等待窗口调整完成和 Vue 重新渲染
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  
+  // 然后再显示模态框
   console.debug("claude-code打印调试日志：设置前 showSettings", showSettings.value)
   showSettings.value = true
   console.debug("claude-code打印调试日志：设置后 showSettings", showSettings.value)
-  console.debug("claude-code打印调试日志：是否在 Electron 环境", isElectron())
-  
-  // 2025年08月02日17时15分23秒有claude修改以下代码
-  // 在 Electron 中扩大窗口以容纳模态框
-  if (isElectron()) {
-    await resizeWindow(800)  // 进一步增加高度确保模态框完整显示
-  }
-  // 2025年08月02日17时15分23秒claude结束操作以上代码
 }
+// 2025年08月02日17时35分45秒claude结束操作以上代码
 
 const closeSettings = async () => {
   console.debug("claude-code打印调试日志：关闭设置模态框")

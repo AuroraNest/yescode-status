@@ -224,12 +224,16 @@ const isFormValid = computed(() => {
 </template>
 
 <style scoped>
+/* 2025年08月02日17时33分12秒有claude修改以下代码 */
 .settings-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  right: 0;
+  bottom: 0;
+  /* 移除 min-height 限制 */
+  width: 100%;
+  height: 100%;
   background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(4px);
   display: flex;
@@ -237,23 +241,31 @@ const isFormValid = computed(() => {
   justify-content: center;
   z-index: 9999;
   pointer-events: all;
+  overflow-y: auto;  /* 允许滚动 */
 }
+/* 2025年08月02日17时33分12秒claude结束操作以上代码 */
 
-/* 2025年08月02日17时11分01秒有claude修改以下代码 */
+/* 2025年08月02日17时42分01秒有claude修改以下代码 */
 .settings-modal {
   background: #2a2a2a;
   border-radius: 12px;
   width: 95%;
-  max-width: 550px;  /* 增加最大宽度 */
-  max-height: 95vh;  /* 增加最大高度 */
-  overflow: hidden;
+  max-width: 480px;
+  /* 完全移除所有高度限制！ */
+  height: auto;
+  max-height: none;   /* 移除最大高度限制！ */
+  min-height: auto;   /* 移除最小高度限制！ */
+  overflow: visible;  /* 改为visible，不限制内容显示 */
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
   border: 2px solid rgba(33, 150, 243, 0.5);
   z-index: 10000;
   position: relative;
   pointer-events: all;
+  display: flex;
+  flex-direction: column;
+  margin: 20px 0;
 }
-/* 2025年08月02日17时11分01秒claude结束操作以上代码 */
+/* 2025年08月02日17时42分01秒claude结束操作以上代码 */
 
 .modal-header {
   display: flex;
@@ -291,13 +303,14 @@ const isFormValid = computed(() => {
   color: #fff;
 }
 
-/* 2025年08月02日17时17分21秒有claude修改以下代码 */
+/* 2025年08月02日17时42分32秒有claude修改以下代码 */
 .modal-content {
-  padding: 16px;  /* 减少内边距 */
-  max-height: calc(98vh - 100px);  /* 进一步增加内容区域高度 */
-  overflow-y: auto;
+  padding: 16px;
+  flex: none;         /* 改为 none，不限制高度 */
+  overflow: visible;  /* 改为 visible，显示所有内容 */
+  /* 完全移除所有限制，让内容自由展开 */
 }
-/* 2025年08月02日17时17分21秒claude结束操作以上代码 */
+/* 2025年08月02日17时42分32秒claude结束操作以上代码 */
 
 /* 2025年08月02日17时17分01秒有claude修改以下代码 */
 .form-group {
@@ -313,16 +326,18 @@ const isFormValid = computed(() => {
   font-weight: 500;
 }
 
+/* 2025年08月02日17时25分23秒有claude修改以下代码 */
 .form-group input {
   width: 100%;
-  padding: 10px 12px;
+  padding: 8px 10px;  /* 减小内边距 */
   background: #1a1a1a;
   border: 1px solid #444;
   border-radius: 6px;
   color: #fff;
-  font-size: 14px;
+  font-size: 13px;    /* 减小字体 */
   transition: all 0.2s;
 }
+/* 2025年08月02日17时25分23秒claude结束操作以上代码 */
 
 .form-group input:focus {
   outline: none;
@@ -459,6 +474,15 @@ const isFormValid = computed(() => {
   cursor: not-allowed;
   transform: none;
 }
+
+/* 2025年08月02日17时37分56秒有claude添加以下代码 */
+/* 确保表单占满内容区域 */
+.modal-content form {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+/* 2025年08月02日17时37分56秒claude结束操作以上代码 */
 
 /* 滚动条样式 */
 .modal-content::-webkit-scrollbar {

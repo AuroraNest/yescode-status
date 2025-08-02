@@ -142,11 +142,11 @@ ipcMain.handle('resize-window', (event, height: number) => {
     
     // 2025年08月02日16时54分12秒有claude修改以下代码
     // 2025年08月02日17时09分23秒有claude修改以下代码
-    // 2025年08月02日17时16分12秒有claude修改以下代码
-    // 如果高度很大（比如600），说明是要显示设置模态框，需要特别处理
-    if (height > 500) {
-      const modalWidth = 650   // 更宽确保内容完整显示
-      const modalHeight = Math.min(height + 100, screenHeight - 40)  // 进一步增加高度余量
+    // 2025年08月02日17时43分12秒有claude修改以下代码
+    // 如果高度很大（比如500），说明是要显示设置模态框，需要特别处理
+    if (height >= 500) {
+      const modalWidth = 520
+      const modalHeight = Math.min(900, screenHeight - 100)  // 非常大的高度，但不超过屏幕
       
       win.setBounds({
         x: Math.floor((screenWidth - modalWidth) / 2),  // 水平居中
@@ -155,6 +155,9 @@ ipcMain.handle('resize-window', (event, height: number) => {
         height: modalHeight
       })
     } else {
+    // 2025年08月02日17时43分12秒claude结束操作以上代码
+    // 2025年08月02日17时28分45秒claude结束操作以上代码
+    // 2025年08月02日17时22分34秒claude结束操作以上代码
       // 2025年08月02日17时06分34秒有claude修改以下代码
       // 正常的悬浮栏大小 - 保持当前位置，只改变高度
       win.setBounds({
