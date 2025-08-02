@@ -145,7 +145,7 @@ ipcMain.handle('resize-window', (event, height: number) => {
     // 2025年08月02日17时43分12秒有claude修改以下代码
     // 如果高度很大（比如500），说明是要显示设置模态框，需要特别处理
     if (height >= 500) {
-      const modalWidth = 520
+      const modalWidth = 450  // 2025年08月02日17时45分12秒有claude修改 - 减小宽度
       const modalHeight = Math.min(900, screenHeight - 100)  // 非常大的高度，但不超过屏幕
       
       win.setBounds({

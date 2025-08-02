@@ -250,7 +250,7 @@ const isFormValid = computed(() => {
   background: #2a2a2a;
   border-radius: 12px;
   width: 95%;
-  max-width: 480px;
+  max-width: 420px;  /* 2025年08月02日17时45分32秒有claude修改 - 减小最大宽度 */
   /* 完全移除所有高度限制！ */
   height: auto;
   max-height: none;   /* 移除最大高度限制！ */
