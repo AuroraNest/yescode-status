@@ -87,6 +87,33 @@ function createWindow() {
   // 初始状态允许鼠标交互
   win.setIgnoreMouseEvents(false)
 
+  // 2025年08月04日17时15分30秒有claude添加以下代码 - 强制保持置顶策略
+  // 初始设置更高层级的置顶
+  win.setAlwaysOnTop(true, 'screen-saver')
+  
+  // 监听窗口失去焦点，强制重新置顶
+  win.on('blur', () => {
+    if (win) {
+      // 延迟一点点再重新置顶，避免与系统冲突
+      setTimeout(() => {
+        if (win && !win.isDestroyed()) {
+          win.setAlwaysOnTop(true, 'screen-saver')
+          win.moveTop() // 移动到最顶层
+        }
+      }, 100)
+    }
+  })
+
+  // 定期检查并强制置顶（防止被其他程序"偷走"置顶状态）
+  const keepOnTopInterval = setInterval(() => {
+    if (win && !win.isDestroyed()) {
+      win.setAlwaysOnTop(true, 'screen-saver')
+    } else {
+      clearInterval(keepOnTopInterval)
+    }
+  }, 2000) // 每2秒检查一次
+  // 2025年08月04日17时15分30秒claude结束操作以上代码
+
   // 监听窗口移动事件，保存位置
   win.on('moved', () => {
     if (win) {
