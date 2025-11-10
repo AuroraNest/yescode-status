@@ -4,7 +4,7 @@ import TaskbarPanel from '../components/TaskbarPanel.vue'
 import { useYescodeStore } from '../composables/useYescodeStore'
 import { configService } from '../services/configService'
 
-const { state, usagePercentage, weeklyPercentage, healthLevel, refreshSnapshot, startAutoRefresh } = useYescodeStore()
+const { state, usagePercentage, healthLevel, refreshSnapshot, startAutoRefresh } = useYescodeStore()
 const electronEnabled = typeof window !== 'undefined' && !!window.electronAPI
 
 const ensureData = async () => {
@@ -30,9 +30,7 @@ onMounted(() => {
     <TaskbarPanel
       :state="state"
       :usage-percentage="usagePercentage"
-      :weekly-percentage="weeklyPercentage"
       :health-level="healthLevel"
-      @refresh="refreshSnapshot(true)"
       @open-settings="openSettings"
     />
   </div>
@@ -42,6 +40,9 @@ onMounted(() => {
 .taskbar-shell {
   width: 100%;
   height: 100%;
-  padding: 12px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

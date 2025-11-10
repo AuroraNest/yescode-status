@@ -71,14 +71,15 @@ function createFloatingWindow() {
 
 function createTaskbarWindow() {
   taskbarWindow = new BrowserWindow({
-    width: 280,
-    height: 220,
+    width: 260,
+    height: 80,
     frame: false,
     transparent: true,
     resizable: false,
     show: false,
     skipTaskbar: true,
     alwaysOnTop: true,
+    focusable: false,
     backgroundColor: '#00000000',
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
@@ -89,11 +90,11 @@ function createTaskbarWindow() {
   positionTaskbarWindow()
 
   taskbarWindow.once('ready-to-show', () => {
-    taskbarWindow?.show()
-  })
-
-  taskbarWindow.on('blur', () => {
-    if (!isMac) taskbarWindow?.hide()
+    if (taskbarWindow?.showInactive) {
+      taskbarWindow.showInactive()
+    } else {
+      taskbarWindow?.show()
+    }
   })
 
   taskbarWindow.on('close', event => {
@@ -169,7 +170,7 @@ function createTray() {
 
   const contextMenu = Menu.buildFromTemplate([
     { label: '显示悬浮窗', click: () => openFloatingWindow() },
-    { label: '切换任务栏面板', click: () => toggleTaskbarPanel() },
+    { label: '显示 / 隐藏余额胶囊', click: () => toggleTaskbarPanel() },
     { type: 'separator' },
     { label: '退出', click: () => app.quit() }
   ])
@@ -225,6 +226,18 @@ ipcMain.handle('open-floating-window', () => {
 
 ipcMain.handle('toggle-taskbar-panel', () => {
   toggleTaskbarPanel()
+})
+
+ipcMain.handle('update-tray-tooltip', (_event, payload: { total: number; usage: number }) => {
+  const totalValue = Number(payload?.total ?? 0)
+  const usageValue = Number(payload?.usage ?? 0)
+  const totalString = totalValue.toFixed(2)
+  const usageString = usageValue.toFixed(1)
+  const text = `yesCode · $${totalString} · ${usageString}%`
+  tray?.setToolTip(text)
+  if (tray && typeof tray.setTitle === 'function' && process.platform === 'darwin') {
+    tray.setTitle(`$${totalString}`)
+  }
 })
 
 app.whenReady().then(() => {

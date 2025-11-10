@@ -9,6 +9,7 @@ interface ElectronAPI {
   quitApp: () => Promise<void>
   openFloatingWindow?: () => Promise<void>
   toggleTaskbarPanel?: () => Promise<void>
+  updateTrayTooltip?: (payload: { total: number; usage: number }) => Promise<void>
 }
 // 2025年08月02日18时38分32秒claude结束操作以上代码
 

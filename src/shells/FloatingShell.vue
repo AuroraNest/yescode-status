@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import FloatingPanel from '../components/FloatingPanel.vue'
 import SettingsModal from '../components/SettingsModal.vue'
 import { useYescodeStore } from '../composables/useYescodeStore'
@@ -10,11 +10,16 @@ const { state, usagePercentage, weeklyPercentage, healthLevel, refreshSnapshot, 
 const showSettings = ref(!configService.isConfigured.value)
 const isExpanded = ref(true)
 const electronEnabled = typeof window !== 'undefined' && !!window.electronAPI
+const panelRef = ref<HTMLElement | null>(null)
+let resizeObserver: ResizeObserver | null = null
 
 const resizeWindow = async () => {
   if (!electronEnabled) return
-  const height = isExpanded.value ? 168 : 48
-  await window.electronAPI.resizeWindow(height)
+  await nextTick()
+  const el = panelRef.value
+  if (!el) return
+  const height = Math.ceil(el.getBoundingClientRect().height + 12)
+  await window.electronAPI.resizeWindow(Math.max(height, 56))
 }
 
 const toggleExpand = async (force?: boolean) => {
@@ -38,28 +43,58 @@ const handleSettingsSaved = async () => {
 }
 
 onMounted(async () => {
-  if (configService.isConfigured.value) {
-    await refreshSnapshot(true)
-    startAutoRefresh()
-  } else {
-    showSettings.value = true
+if (configService.isConfigured.value) {
+  await refreshSnapshot(true)
+  startAutoRefresh()
+} else {
+  showSettings.value = true
+}
+
+if (typeof ResizeObserver !== 'undefined') {
+  resizeObserver = new ResizeObserver(() => {
+    resizeWindow()
+  })
+  if (panelRef.value) {
+    resizeObserver.observe(panelRef.value)
   }
-  await resizeWindow()
+}
+
+await resizeWindow()
+})
+
+watch(
+  () => panelRef.value,
+  (el, prev) => {
+    if (!resizeObserver) return
+    if (prev) resizeObserver.unobserve(prev as Element)
+    if (el) resizeObserver.observe(el as Element)
+  }
+)
+
+watch(
+  () => [isExpanded.value, state.status, state.error, state.snapshot],
+  () => resizeWindow()
+)
+
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect()
 })
 </script>
 
 <template>
   <div class="floating-shell">
-    <FloatingPanel
-      :state="state"
-      :usage-percentage="usagePercentage"
-      :weekly-percentage="weeklyPercentage"
-      :health-level="healthLevel"
-      :is-expanded="isExpanded"
-      @refresh="handleRefresh"
-      @open-settings="openSettings"
-      @toggle-expand="toggleExpand"
-    />
+    <div class="panel-wrapper" ref="panelRef">
+      <FloatingPanel
+        :state="state"
+        :usage-percentage="usagePercentage"
+        :weekly-percentage="weeklyPercentage"
+        :health-level="healthLevel"
+        :is-expanded="isExpanded"
+        @refresh="handleRefresh"
+        @open-settings="openSettings"
+        @toggle-expand="toggleExpand"
+      />
+    </div>
 
     <SettingsModal
       :visible="showSettings"
@@ -77,5 +112,9 @@ onMounted(async () => {
   align-items: flex-start;
   justify-content: center;
   padding-top: 8px;
+}
+
+.panel-wrapper {
+  display: inline-flex;
 }
 </style>

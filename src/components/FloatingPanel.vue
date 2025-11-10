@@ -23,258 +23,282 @@ const emit = defineEmits<{
   toggleExpand: [force?: boolean]
 }>()
 
-const statusText = computed(() => {
-  if (!props.state.snapshot) {
-    if (props.state.status === 'idle') return '等待配置 API Token'
-    if (props.state.status === 'loading') return '正在连接 yesCode...'
-    if (props.state.status === 'error') return props.state.error || '加载失败'
-  }
+const headline = computed(() => {
   if (props.state.status === 'error') {
-    return props.state.error || '获取数据失败'
+    return props.state.error || '连接失败'
   }
-  const balance = props.state.snapshot?.balance.total_balance ?? 0
-  return `yesCode · $${balance.toFixed(2)}`
+  if (!props.state.snapshot) {
+    if (props.state.status === 'loading') return '正在连接 yesCode...'
+    return '等待配置 API Token'
+  }
+  return props.state.snapshot.profile.username || 'yesCode'
 })
 
-const accentClass = computed(() => {
-  switch (props.healthLevel) {
-    case 'danger': return 'accent-danger'
-    case 'warn': return 'accent-warn'
-    default: return 'accent-ok'
-  }
-})
-
-const chipText = computed(() => {
-  if (props.state.status === 'error') return '连接异常'
+const planName = computed(() => {
   if (!props.state.snapshot) return '未配置'
   return props.state.snapshot.profile.subscription_plan?.name ?? 'Standard'
+})
+
+const totalBalance = computed(() => props.state.snapshot?.balance.total_balance ?? 0)
+const subscriptionBalance = computed(() => props.state.snapshot?.balance.subscription_balance ?? 0)
+const paygBalance = computed(() => props.state.snapshot?.balance.pay_as_you_go_balance ?? 0)
+const weeklySpent = computed(() => props.state.snapshot?.balance.weekly_spent_balance ?? 0)
+
+const shieldClass = computed(() => {
+  switch (props.healthLevel) {
+    case 'warn': return 'shield warn'
+    case 'danger': return 'shield danger'
+    default: return 'shield ok'
+  }
 })
 </script>
 
 <template>
-  <div
-    class="floating-panel frosted-card"
-    :class="[accentClass, { collapsed: !isExpanded }]"
-    @mouseenter="emit('toggleExpand', true)"
-    @mouseleave="emit('toggleExpand', false)"
-  >
-    <div class="cap-row" @dblclick="emit('toggleExpand')">
-      <div class="drag-region">
-        <div class="brand">yesCode Status</div>
-        <div class="chip">{{ chipText }}</div>
+  <section class="panel" :class="{ collapsed: !isExpanded }">
+    <div class="panel__header" @dblclick="emit('toggleExpand')">
+      <div class="title">
+        <div class="badge">yesCode</div>
+        <h1>{{ headline }}</h1>
+        <p class="subtitle">
+          <span>{{ planName }}</span>
+          <span>•</span>
+          <span v-if="state.lastUpdated">更新 {{ state.lastUpdated?.toLocaleTimeString() }}</span>
+          <span v-else>尚未同步</span>
+        </p>
       </div>
+
       <div class="actions">
-        <button class="icon-btn" @click.stop="emit('refresh')" title="刷新">
-          🔄
-        </button>
-        <button class="icon-btn" @click.stop="emit('openSettings')" title="设置">
-          ⚙️
-        </button>
-        <button class="icon-btn" @click.stop="emit('toggleExpand')" title="折叠/展开">
+        <button class="icon" title="刷新" @click="emit('refresh')">↻</button>
+        <button class="icon" title="设置" @click="emit('openSettings')">⚙</button>
+        <button class="icon" title="收起" @click="emit('toggleExpand')">
           {{ isExpanded ? '–' : '+' }}
         </button>
       </div>
     </div>
 
     <transition name="fade">
-      <div v-if="isExpanded" class="body">
-        <div class="status-text">{{ statusText }}</div>
-
-        <div class="grid">
-          <div class="metric-card">
+      <div v-if="isExpanded" class="panel__body">
+        <div class="shield-block" :class="shieldClass">
+          <div class="primary">
             <span class="label">总余额</span>
-            <strong>${{ props.state.snapshot?.balance.total_balance.toFixed(2) ?? '0.00' }}</strong>
+            <div class="value">${{ totalBalance.toFixed(2) }}</div>
           </div>
-          <div class="metric-card">
-            <span class="label">订阅余额</span>
-            <strong>${{ props.state.snapshot?.balance.subscription_balance.toFixed(2) ?? '0.00' }}</strong>
-          </div>
-          <div class="metric-card">
-            <span class="label">按量余额</span>
-            <strong>${{ props.state.snapshot?.balance.pay_as_you_go_balance.toFixed(2) ?? '0.00' }}</strong>
-          </div>
-          <div class="metric-card">
-            <span class="label">本周已用</span>
-            <strong>${{ props.state.snapshot?.balance.weekly_spent_balance.toFixed(2) ?? '0.00' }}</strong>
-          </div>
-        </div>
-
-        <div class="progress-block">
-          <div class="progress-label">
-            <span>订阅日使用 {{ usagePercentage.toFixed(1) }}%</span>
-            <span>周使用 {{ weeklyPercentage.toFixed(1) }}%</span>
-          </div>
-          <div class="progress-wrapper">
-            <div class="progress-bar daily">
-              <div class="fill" :style="{ width: usagePercentage + '%' }"></div>
+          <div class="secondary">
+            <div>
+              <span>订阅</span>
+              <strong>${{ subscriptionBalance.toFixed(2) }}</strong>
             </div>
-            <div class="progress-bar weekly">
-              <div class="fill" :style="{ width: weeklyPercentage + '%' }"></div>
+            <div>
+              <span>按量</span>
+              <strong>${{ paygBalance.toFixed(2) }}</strong>
             </div>
           </div>
         </div>
 
-        <div class="meta">
-          <span>最后更新 · {{ state.lastUpdated ? state.lastUpdated.toLocaleTimeString() : '—' }}</span>
+        <div class="metrics">
+          <article>
+            <span class="label">订阅使用</span>
+            <div class="progress">
+              <div class="progress__fill" :style="{ width: usagePercentage + '%' }"></div>
+            </div>
+            <small>{{ usagePercentage.toFixed(1) }}% of daily quota</small>
+          </article>
+          <article>
+            <span class="label">周使用</span>
+            <div class="progress warm">
+              <div class="progress__fill" :style="{ width: weeklyPercentage + '%' }"></div>
+            </div>
+            <small>本周花费 ${{ weeklySpent.toFixed(2) }}</small>
+          </article>
+        </div>
+
+        <div class="cta-row">
+          <div class="hint">
+            {{ state.status === 'idle' ? '点击下方配置 API Token 以开始同步' : '点击刷新或设置以掌控额度' }}
+          </div>
+          <button class="primary" @click="emit('openSettings')">配置 / 管理</button>
         </div>
       </div>
     </transition>
-  </div>
+  </section>
 </template>
 
 <style scoped>
-.floating-panel {
-  width: 360px;
-  padding: 14px 16px 12px;
-  transition: height 0.25s ease, transform 0.25s ease;
-  border-radius: 18px;
-  border-inline-start: 3px solid transparent;
-  min-height: 48px;
+.panel {
+  width: 420px;
+  padding: 18px 20px 16px;
+  border-radius: 22px;
+  background: radial-gradient(circle at top, rgba(98, 85, 255, 0.35), rgba(14, 15, 26, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 30px 60px rgba(4, 5, 18, 0.55);
+  backdrop-filter: blur(16px);
+  color: var(--text-primary);
+  transition: padding 0.3s ease;
 }
 
-.floating-panel.collapsed {
-  padding-bottom: 8px;
+.panel.collapsed {
+  padding-bottom: 10px;
 }
 
-.cap-row {
+.panel__header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
   gap: 12px;
-}
-
-.drag-region {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   -webkit-app-region: drag;
 }
 
-.brand {
-  font-weight: 600;
-  letter-spacing: 0.3px;
+.panel__header .title {
+  -webkit-app-region: no-drag;
 }
 
-.chip {
-  padding: 2px 8px;
+.badge {
+  display: inline-flex;
+  padding: 3px 10px;
   border-radius: 999px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   background: rgba(255, 255, 255, 0.08);
+}
+
+.panel__header h1 {
+  margin: 6px 0 2px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 0;
+  display: flex;
+  gap: 6px;
   font-size: 12px;
-  -webkit-app-region: no-drag;
+  color: var(--text-secondary);
 }
 
 .actions {
   display: flex;
   gap: 6px;
-}
-
-.icon-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease;
   -webkit-app-region: no-drag;
 }
 
-.icon-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.body {
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.status-text {
+.icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.15);
+  color: var(--text-primary);
+  cursor: pointer;
   font-size: 14px;
-  color: var(--text-secondary);
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.metric-card {
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+.panel__body {
+  margin-top: 18px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 18px;
 }
 
-.metric-card .label {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.metric-card strong {
-  font-size: 16px;
-}
-
-.progress-block {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.progress-label {
+.shield-block {
+  padding: 16px 18px;
+  border-radius: 18px;
   display: flex;
   justify-content: space-between;
+  background: linear-gradient(120deg, rgba(45, 212, 191, 0.25), rgba(14, 165, 233, 0.15));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.shield-block.warn {
+  background: linear-gradient(120deg, rgba(251, 191, 36, 0.25), rgba(248, 113, 113, 0.15));
+}
+
+.shield-block.danger {
+  background: linear-gradient(120deg, rgba(248, 113, 113, 0.3), rgba(220, 38, 38, 0.2));
+}
+
+.primary .label {
   font-size: 12px;
   color: var(--text-secondary);
 }
 
-.progress-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.primary .value {
+  font-size: 32px;
+  font-weight: 600;
+  margin-top: 6px;
 }
 
-.progress-bar {
+.secondary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: right;
+  font-size: 13px;
+}
+
+.secondary strong {
+  display: block;
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.metrics article {
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.metrics .label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.progress {
   width: 100%;
-  height: 6px;
+  height: 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  margin: 8px 0 6px;
+  background: rgba(255, 255, 255, 0.12);
   overflow: hidden;
 }
 
-.progress-bar .fill {
+.progress__fill {
   height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #8f73ff, #4cc9f0);
+  border-radius: inherit;
+  background: linear-gradient(120deg, #7c3aed, #06b6d4);
   transition: width 0.3s ease;
 }
 
-.progress-bar.weekly .fill {
-  background: linear-gradient(90deg, #f97316, #facc15);
+.progress.warm .progress__fill {
+  background: linear-gradient(120deg, #fb923c, #f87171);
 }
 
-.meta {
+.cta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.hint {
   font-size: 12px;
   color: var(--text-secondary);
-  text-align: right;
 }
 
-.accent-ok {
-  border-left-color: var(--success);
-}
-
-.accent-warn {
-  border-left-color: var(--warning);
-}
-
-.accent-danger {
-  border-left-color: var(--danger);
+.primary {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 18px;
+  background: linear-gradient(120deg, #38bdf8, #8b5cf6);
+  color: #0b0b12;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .fade-enter-active,
