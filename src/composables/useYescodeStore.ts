@@ -40,10 +40,22 @@ const healthLevel = computed<'ok' | 'warn' | 'danger'>(() => {
   return 'ok'
 })
 
+const emitNativeStatus = () => {
+  if (typeof window === 'undefined') return
+  const api = window.electronAPI
+  if (!api || typeof api.updateTrayTooltip !== 'function') return
+  const total = state.snapshot?.balance.total_balance ?? 0
+  api.updateTrayTooltip({
+    total,
+    usage: usagePercentage.value
+  })
+}
+
 async function refreshSnapshot(force = false) {
   if (!configService.isConfigured.value) {
     state.status = 'idle'
     state.snapshot = null
+    emitNativeStatus()
     return
   }
 
@@ -61,9 +73,11 @@ async function refreshSnapshot(force = false) {
     state.lastUpdated = new Date()
     state.error = ''
     state.status = 'ready'
+    emitNativeStatus()
   } catch (error) {
     state.error = error instanceof Error ? error.message : '获取数据失败'
     state.status = 'error'
+    emitNativeStatus()
   } finally {
     isRefreshing.value = false
   }
