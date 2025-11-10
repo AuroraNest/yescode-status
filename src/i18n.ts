@@ -38,6 +38,7 @@ const messages = {
       open: '打开主面板',
       enlarge: '放大',
       settings: '设置',
+      hide: '隐藏',
       unavailable: '暂不可用',
       notConfigured: '尚未配置 API Token',
       preference: {
@@ -107,6 +108,7 @@ const messages = {
       open: 'Open panel',
       enlarge: 'Expand',
       settings: 'Settings',
+      hide: 'Hide',
       unavailable: 'Unavailable',
       notConfigured: 'API Token required',
       preference: {

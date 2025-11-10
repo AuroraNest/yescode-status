@@ -132,6 +132,7 @@ function showCapsule() {
   win.setBounds({ width: CAPSULE_BOUNDS.width, height: CAPSULE_BOUNDS.height, x, y })
   loadRenderer('capsule')
   win.showInactive?.()
+  win.show()
 }
 
 function showPanel() {
@@ -176,17 +177,17 @@ function createTray() {
   }
 }
 
-function updateOverlayIcon(value: number) {
+function updateOverlayIcon(total: number) {
   if (!win || process.platform !== 'win32') return
-  const remaining = Math.max(0, Math.min(99, Math.round(value)))
-  const label = remaining.toString().padStart(2, '0')
+  const dollars = Math.max(0, Math.min(999, Math.round(total)))
+  const label = dollars.toString()
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
       <rect width="64" height="64" rx="12" ry="12" fill="#111827ee"/>
-      <text x="32" y="42" font-size="34" font-weight="700" text-anchor="middle" fill="#60a5fa">${label}</text>
+      <text x="32" y="42" font-size="28" font-weight="700" text-anchor="middle" fill="#60a5fa">${label}</text>
     </svg>`
   const image = nativeImage.createFromDataURL(`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`)
-  win.setOverlayIcon(image.resize({ width: 26, height: 26 }), `剩余 ${label}%`)
+  win.setOverlayIcon(image.resize({ width: 26, height: 26 }), `余额 $${label}`)
 }
 
 ipcMain.handle('resize-window', (_event, height: number) => {
@@ -213,6 +214,7 @@ ipcMain.handle('quit-app', () => app.quit())
 ipcMain.handle('open-floating-window', () => showPanel())
 ipcMain.handle('toggle-taskbar-panel', () => (mode === 'capsule' ? showPanel() : showCapsule()))
 ipcMain.handle('minimize-window', () => showCapsule())
+ipcMain.handle('hide-window', () => win?.hide())
 
 ipcMain.handle('update-tray-tooltip', (_event, payload: { total: number; usage: number }) => {
   const totalValue = Number(payload?.total ?? 0)
@@ -223,7 +225,7 @@ ipcMain.handle('update-tray-tooltip', (_event, payload: { total: number; usage: 
   if (tray && typeof tray.setTitle === 'function' && process.platform === 'darwin') {
     tray.setTitle(`$${totalString}`)
   }
-  updateOverlayIcon(Math.max(0, 100 - usageValue))
+  updateOverlayIcon(totalValue)
 })
 
 app.whenReady().then(() => {
