@@ -1,509 +1,319 @@
-<!-- 2025-01-03 18:30:10 claude添加以下代码 -->
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { configService } from '../services/configService'
 import { apiService } from '../services/apiService'
+import { useYescodeStore } from '../composables/useYescodeStore'
 
-defineProps<{  // 2025年08月02日18时36分12秒有claude修改 - 移除未使用的props变量
-  visible: boolean
-}>()
+const props = defineProps<{ visible: boolean }>()
+const emit = defineEmits<{ close: []; saved: [] }>()
 
-const emit = defineEmits<{
-  close: []
-  save: [config: any]
-}>()
+const { state } = useYescodeStore()
 
-// 表单数据
-const formData = reactive({
+const form = reactive({
   apiToken: configService.config.apiToken || '',
-  apiEndpoint: configService.config.apiEndpoint || 'https://co.yes.vg/api/v1/claude/balance',
-  refreshInterval: configService.config.refreshInterval || 60,
-  dailyLimit: configService.config.dailyLimit || 100
+  launchTaskbarPanel: configService.preferences.launchTaskbarPanel,
+  showFloatingBar: configService.preferences.showFloatingBar,
+  compactFloatingMode: configService.preferences.compactFloatingMode
 })
 
-// 验证状态
-const validation = reactive({
-  apiToken: { valid: true, message: '' },
-  apiEndpoint: { valid: true, message: '' },
-  refreshInterval: { valid: true, message: '' },
-  dailyLimit: { valid: true, message: '' }
-})
-
-const isTestingConnection = ref(false)
+const showToken = ref(false)
+const isTesting = ref(false)
 const testResult = ref('')
 
-// 验证表单
-const validateForm = () => {
-  validation.apiToken = configService.validateApiToken(formData.apiToken)
-  validation.apiEndpoint = configService.validateApiEndpoint(formData.apiEndpoint)
-  validation.refreshInterval = configService.validateRefreshInterval(formData.refreshInterval)
-  validation.dailyLimit = configService.validateDailyLimit(formData.dailyLimit)
-  
-  return Object.values(validation).every(v => v.valid)
-}
-
-// 测试连接
-const testConnection = async () => {
-  if (!validation.apiToken.valid) {
-    testResult.value = 'API Token 格式错误'
-    return
-  }
-  
-  isTestingConnection.value = true
-  testResult.value = ''
-  
-  try {
-    // 临时应用配置进行测试
-    configService.saveConfig({
-      apiToken: formData.apiToken,
-      apiEndpoint: formData.apiEndpoint
-    })
-    
-    const success = await apiService.testConnection()
-    if (success) {
-      testResult.value = '✅ 连接测试成功！'
-    } else {
-      testResult.value = '❌ 连接测试失败'
+watch(
+  () => props.visible,
+  visible => {
+    if (visible) {
+      form.apiToken = configService.config.apiToken || ''
+      form.launchTaskbarPanel = configService.preferences.launchTaskbarPanel
+      form.showFloatingBar = configService.preferences.showFloatingBar
+      form.compactFloatingMode = configService.preferences.compactFloatingMode
+      testResult.value = ''
     }
-  } catch (error: any) {
-    testResult.value = `❌ 连接失败: ${error.message}`
-  } finally {
-    isTestingConnection.value = false
   }
+)
+
+const tokenValidation = computed(() => configService.validateApiToken(form.apiToken))
+const canSave = computed(() => tokenValidation.value.valid)
+
+const close = () => emit('close')
+
+const save = () => {
+  if (!canSave.value) return
+  configService.saveConfig({ apiToken: form.apiToken.trim() })
+  configService.savePreferences({
+    launchTaskbarPanel: form.launchTaskbarPanel,
+    showFloatingBar: form.showFloatingBar,
+    compactFloatingMode: form.compactFloatingMode
+  })
+  emit('saved')
 }
 
-// 2025年08月02日16时57分11秒有claude修改以下代码
-// 保存配置
-const saveConfig = () => {
-  if (!validateForm()) {
+const resetAll = () => {
+  if (!confirm('确定要重置所有配置吗？')) return
+  configService.resetConfig()
+  form.apiToken = ''
+  testResult.value = '配置已重置'
+}
+
+const testConnection = async () => {
+  if (!canSave.value) {
+    testResult.value = tokenValidation.value.message
     return
   }
-  
-  console.debug("claude-code打印调试日志：准备保存配置", formData)
-  emit('save', formData)
-}
-// 2025年08月02日16时57分11秒claude结束操作以上代码
-
-// 关闭设置
-const close = () => {
-  emit('close')
-}
-
-// 重置配置
-const resetConfig = () => {
-  if (confirm('确定要重置所有配置吗？这将清除所有设置。')) {
-    configService.resetConfig()
-    Object.assign(formData, {
-      apiToken: '',
-      apiEndpoint: 'https://co.yes.vg/api/v1/claude/balance',
-      refreshInterval: 60,
-      dailyLimit: 100
-    })
+  isTesting.value = true
+  testResult.value = '正在测试...'
+  try {
+    await apiService.fetchSnapshot(form.apiToken.trim())
+    testResult.value = '✅ yesCode API 连接正常'
+  } catch (error) {
+    testResult.value = `❌ ${error instanceof Error ? error.message : '连接失败'}`
+  } finally {
+    isTesting.value = false
   }
 }
-
-// 表单是否有效
-const isFormValid = computed(() => {
-  return Object.values(validation).every(v => v.valid) && formData.apiToken.trim()
-})
 </script>
 
 <template>
-  <div v-show="visible" class="settings-overlay" @click.self="close">
-    <div class="settings-modal">
-      <div class="modal-header">
-        <h3>⚙️ 配置设置</h3>
-        <button @click="close" class="close-btn">×</button>
-      </div>
-      
-      <div class="modal-content">
-        <form @submit.prevent="saveConfig">
-          <!-- API Token -->
-          <div class="form-group">
-            <label for="apiToken">API Token *</label>
-            <input
-              id="apiToken"
-              v-model="formData.apiToken"
-              type="password"
-              placeholder="cr_xxxxxxxxxxxxxxxx"
-              :class="{ 'error': !validation.apiToken.valid }"
-              @blur="validateForm"
-            />
-            <small v-if="!validation.apiToken.valid" class="error-text">
-              {{ validation.apiToken.message }}
-            </small>
-            <small v-else class="help-text">
-              从 yesCode 获取的 API 密钥，格式如：cr_xxxxxxxx
-            </small>
+  <teleport to="body">
+    <div v-if="visible" class="modal-overlay" @click.self="close">
+      <div class="modal frosted-card">
+        <header>
+          <div>
+            <h2>配置 yesCode</h2>
+            <p>只需填入 API Token，其他信息将自动同步</p>
           </div>
+          <button class="close-btn" @click="close">×</button>
+        </header>
 
-          <!-- API 端点 -->
-          <div class="form-group">
-            <label for="apiEndpoint">API 端点</label>
+        <section class="form">
+          <label>API Token</label>
+          <div class="token-row">
             <input
-              id="apiEndpoint"
-              v-model="formData.apiEndpoint"
-              type="url"
-              :class="{ 'error': !validation.apiEndpoint.valid }"
-              @blur="validateForm"
+              :type="showToken ? 'text' : 'password'"
+              v-model="form.apiToken"
+              placeholder="cr_xxxxxxxxxxxxx"
+              :class="{ invalid: !tokenValidation.valid }"
             />
-            <small v-if="!validation.apiEndpoint.valid" class="error-text">
-              {{ validation.apiEndpoint.message }}
-            </small>
-          </div>
-
-          <!-- 刷新间隔 -->
-          <div class="form-group">
-            <label for="refreshInterval">刷新间隔 (秒)</label>
-            <input
-              id="refreshInterval"
-              v-model.number="formData.refreshInterval"
-              type="number"
-              min="10"
-              max="3600"
-              :class="{ 'error': !validation.refreshInterval.valid }"
-              @blur="validateForm"
-            />
-            <small v-if="!validation.refreshInterval.valid" class="error-text">
-              {{ validation.refreshInterval.message }}
-            </small>
-          </div>
-
-          <!-- 每日限额 -->
-          <div class="form-group">
-            <label for="dailyLimit">每日订阅额度 ($)</label>
-            <input
-              id="dailyLimit"
-              v-model.number="formData.dailyLimit"
-              type="number"
-              min="1"
-              max="10000"
-              step="0.01"
-              :class="{ 'error': !validation.dailyLimit.valid }"
-              @blur="validateForm"
-            />
-            <small v-if="!validation.dailyLimit.valid" class="error-text">
-              {{ validation.dailyLimit.message }}
-            </small>
-            <small v-else class="help-text">
-              用于计算使用百分比
-            </small>
-          </div>
-
-          <!-- 测试连接 -->
-          <div class="form-group">
-            <button 
-              type="button" 
-              @click="testConnection" 
-              :disabled="!formData.apiToken || isTestingConnection"
-              class="test-btn"
-            >
-              <span v-if="isTestingConnection">🔄 测试中...</span>
-              <span v-else>🔍 测试连接</span>
+            <button class="ghost" @click="showToken = !showToken" type="button">
+              {{ showToken ? '隐藏' : '显示' }}
             </button>
-            <div v-if="testResult" class="test-result" :class="testResult.includes('✅') ? 'success' : 'error'">
-              {{ testResult }}
-            </div>
+          </div>
+          <small v-if="!tokenValidation.valid" class="error">{{ tokenValidation.message }}</small>
+          <small v-else>从 yesCode 控制台复制以 cr_ 开头的密钥</small>
+
+          <div class="toggles">
+            <label>
+              <input type="checkbox" v-model="form.launchTaskbarPanel" />
+              登录后自动显示任务栏面板
+            </label>
+            <label>
+              <input type="checkbox" v-model="form.showFloatingBar" />
+              启用悬浮状态条
+            </label>
+            <label>
+              <input type="checkbox" v-model="form.compactFloatingMode" />
+              使用紧凑模式（悬浮条更窄更贴边）
+            </label>
           </div>
 
-          <!-- 操作按钮 -->
-          <div class="modal-actions">
-            <button type="button" @click="resetConfig" class="reset-btn">
-              🗑️ 重置配置
-            </button>
-            <div class="action-buttons">
-              <button type="button" @click="close" class="cancel-btn">
-                取消
-              </button>
-              <button type="submit" :disabled="!isFormValid" class="save-btn">
-                💾 保存
-              </button>
-            </div>
+          <div class="live-cards">
+            <article>
+              <span class="label">订阅计划</span>
+              <strong>{{ state.snapshot?.profile.subscription_plan?.name ?? '待连接' }}</strong>
+            </article>
+            <article>
+              <span class="label">每日额度</span>
+              <strong>{{ state.snapshot?.profile.subscription_plan?.daily_balance ?? '—' }}</strong>
+            </article>
+            <article>
+              <span class="label">刷新频率</span>
+              <strong>每 60 秒</strong>
+            </article>
           </div>
-        </form>
+        </section>
+
+        <section class="actions">
+          <div class="left">
+            <button class="ghost" type="button" @click="testConnection" :disabled="isTesting">
+              {{ isTesting ? '测试中...' : '测试连接' }}
+            </button>
+            <span class="test-result">{{ testResult }}</span>
+          </div>
+          <div class="right">
+            <button class="ghost danger" type="button" @click="resetAll">重置</button>
+            <button class="ghost" type="button" @click="close">取消</button>
+            <button class="primary" type="button" :disabled="!canSave" @click="save">保存</button>
+          </div>
+        </section>
       </div>
     </div>
-  </div>
+  </teleport>
 </template>
 
 <style scoped>
-/* 2025年08月02日17时53分05秒有claude修改以下代码 */
-.settings-overlay {
+.modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  /* 移除 min-height 限制 */
-  width: 100%;
-  height: 100vh;     /* 2025年08月02日17时53分05秒有claude修改 - 使用vh确保占满视口高度 */
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(4px);
+  inset: 0;
+  background: rgba(5, 5, 8, 0.6);
   display: flex;
-  align-items: flex-start;  /* 2025年08月02日18时19分22秒有claude修改 - 改为顶部对齐，减少底部空白 */
+  align-items: center;
   justify-content: center;
-  z-index: 9999;
-  pointer-events: all;
-  overflow-y: auto;  /* 允许滚动 */
-  padding: 20px 0 5px 0;  /* 2025年08月02日18时19分45秒有claude修改 - 顶部保持间距，底部减少 */
+  padding: 24px;
+  z-index: 999;
 }
-/* 2025年08月02日17时53分05秒claude结束操作以上代码 */
 
-/* 2025年08月02日17时52分42秒有claude修改以下代码 */
-.settings-modal {
-  background: #2a2a2a;
-  border-radius: 12px;
-  width: 95%;
-  max-width: 400px;  /* 2025年08月02日17时45分32秒有claude修改 - 减小最大宽度 */
-  /* 完全移除所有高度限制，确保内容完整显示！ */
-  height: auto;
-  max-height: none;   /* 移除最大高度限制！ */
-  min-height: auto;   /* 移除最小高度限制！ */
-  overflow: visible;  /* 改为visible，不限制内容显示 */
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-  border: 2px solid rgba(33, 150, 243, 0.5);
-  z-index: 10000;
-  position: relative;
-  pointer-events: all;
+.modal {
+  width: 420px;
+  max-width: 100%;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  margin: 0;         /* 2025年08月02日17时53分25秒有claude修改 - 移除margin，由overlay的padding控制间距 */
+  gap: 18px;
 }
-/* 2025年08月02日17时52分42秒claude结束操作以上代码 */
 
-.modal-header {
+header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: #333;
+  align-items: flex-start;
 }
 
-.modal-header h3 {
+header h2 {
   margin: 0;
-  color: #fff;
-  font-size: 16px;
-  font-weight: 600;
+}
+
+header p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .close-btn {
   background: none;
   border: none;
-  color: #888;
+  color: var(--text-secondary);
   font-size: 20px;
   cursor: pointer;
-  width: 30px;
-  height: 30px;
+}
+
+.form {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  transition: all 0.2s;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+.token-row {
+  display: flex;
+  gap: 8px;
 }
 
-/* 2025年08月02日17时42分32秒有claude修改以下代码 */
-.modal-content {
-  padding: 16px;
-  flex: none;         /* 改为 none，不限制高度 */
-  overflow: visible;  /* 改为 visible，显示所有内容 */
-  /* 完全移除所有限制，让内容自由展开 */
-}
-/* 2025年08月02日17时42分32秒claude结束操作以上代码 */
-
-/* 2025年08月02日17时17分01秒有claude修改以下代码 */
-.form-group {
-  margin-bottom: 16px;  /* 减少间距 */
-}
-/* 2025年08月02日17时17分01秒claude结束操作以上代码 */
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  color: #ccc;
-  font-size: 14px;
-  font-weight: 500;
+.form input[type='password'],
+.form input[type='text'] {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
 }
 
-/* 2025年08月02日17时25分23秒有claude修改以下代码 */
-.form-group input {
-  width: 100%;
-  padding: 8px 10px;  /* 减小内边距 */
-  background: #1a1a1a;
-  border: 1px solid #444;
-  border-radius: 6px;
-  color: #fff;
-  font-size: 13px;    /* 减小字体 */
-  transition: all 0.2s;
-}
-/* 2025年08月02日17时25分23秒claude结束操作以上代码 */
-
-.form-group input:focus {
-  outline: none;
-  border-color: #2196F3;
-  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+.form input.invalid {
+  border-color: var(--danger);
 }
 
-.form-group input.error {
-  border-color: #ff6b6b;
-  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
+small {
+  color: var(--text-secondary);
 }
 
-.help-text {
-  display: block;
-  margin-top: 4px;
-  color: #888;
-  font-size: 12px;
+small.error {
+  color: var(--danger);
 }
 
-.error-text {
-  display: block;
-  margin-top: 4px;
-  color: #ff6b6b;
-  font-size: 12px;
-}
-
-.test-btn {
-  background: #4CAF50;
-  border: none;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: 8px;
-}
-
-.test-btn:hover:not(:disabled) {
-  background: #45a049;
-  transform: translateY(-1px);
-}
-
-.test-btn:disabled {
-  background: #666;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.test-result {
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 12px;
+.toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   margin-top: 8px;
 }
 
-.test-result.success {
-  background: rgba(76, 175, 80, 0.2);
-  color: #4CAF50;
-  border: 1px solid rgba(76, 175, 80, 0.3);
-}
-
-.test-result.error {
-  background: rgba(255, 107, 107, 0.2);
-  color: #ff6b6b;
-  border: 1px solid rgba(255, 107, 107, 0.3);
-}
-
-/* 2025年08月02日17时17分45秒有claude修改以下代码 */
-.modal-actions {
+.toggles label {
+  font-size: 13px;
+  color: var(--text-secondary);
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-top: 16px;  /* 减少顶部间距 */
-  padding-top: 16px;  /* 减少内边距 */
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 8px;
 }
-/* 2025年08月02日17时17分45秒claude结束操作以上代码 */
 
-.action-buttons {
-  display: flex;
+.live-cards {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
-.reset-btn {
-  background: #ff6b6b;
-  border: none;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
+.live-cards article {
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.reset-btn:hover {
-  background: #e55757;
-  transform: translateY(-1px);
+.live-cards .label {
+  font-size: 11px;
+  color: var(--text-secondary);
 }
 
-.cancel-btn {
-  background: #666;
-  border: none;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
+.live-cards strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 15px;
 }
 
-.cancel-btn:hover {
-  background: #777;
-}
-
-.save-btn {
-  background: #2196F3;
-  border: none;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.save-btn:hover:not(:disabled) {
-  background: #1976D2;
-  transform: translateY(-1px);
-}
-
-.save-btn:disabled {
-  background: #666;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* 2025年08月02日17时37分56秒有claude添加以下代码 */
-/* 确保表单占满内容区域 */
-.modal-content form {
-  height: 100%;
+.actions {
   display: flex;
-  flex-direction: column;
-}
-/* 2025年08月02日17时37分56秒claude结束操作以上代码 */
-
-/* 滚动条样式 */
-.modal-content::-webkit-scrollbar {
-  width: 6px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
 }
 
-.modal-content::-webkit-scrollbar-track {
-  background: #1a1a1a;
+.left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
 }
 
-.modal-content::-webkit-scrollbar-thumb {
-  background: #666;
-  border-radius: 3px;
+.right {
+  display: flex;
+  gap: 10px;
 }
 
-.modal-content::-webkit-scrollbar-thumb:hover {
-  background: #777;
+.ghost {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.ghost.danger {
+  border-color: rgba(255, 107, 129, 0.5);
+  color: var(--danger);
+}
+
+.primary {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 18px;
+  background: var(--accent);
+  color: #101012;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.test-result {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 </style>
-<!-- 2025-01-03 18:30:10 claude结束操作以上代码 -->

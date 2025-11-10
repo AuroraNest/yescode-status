@@ -1,138 +1,120 @@
-// 2025-01-03 18:30:07 claude添加以下代码
-export interface ApiResponse {
-  total_balance: number
+const API_BASE = 'https://co.yes.vg/api/v1'
+const BALANCE_ENDPOINT = `${API_BASE}/user/balance`
+const PROFILE_ENDPOINT = `${API_BASE}/auth/profile`
+const PREFERENCE_ENDPOINT = `${API_BASE}/user/balance-preference`
+
+export interface SubscriptionPlan {
+  id: number
+  name: string
+  daily_balance: number
+  weekly_limit: number
+  price: number
+  plan_type: string
+}
+
+export interface UserProfile {
+  id: number
+  username: string
+  email: string
+  balance_preference: 'subscription_first' | 'payg_only'
   subscription_balance: number
   pay_as_you_go_balance: number
   balance: number
-  daily_usage?: number
+  subscription_plan_id: number
+  subscription_plan: SubscriptionPlan
+  subscription_expiry: string
+  current_week_spend: number
+  current_month_spend: number
+  updated_at: string
 }
 
-export interface AppConfig {
-  apiToken: string
-  apiEndpoint: string
-  refreshInterval: number
-  dailyLimit: number
+export interface BalanceSnapshot {
+  balance: number
+  pay_as_you_go_balance: number
+  subscription_balance: number
+  total_balance: number
+  weekly_limit: number
+  weekly_spent_balance: number
 }
 
-export class ApiService {
+export interface StatusSnapshot {
+  profile: UserProfile
+  balance: BalanceSnapshot
+}
+
+class ApiService {
   private static instance: ApiService
-  private config: AppConfig = {
-    apiToken: '',
-    apiEndpoint: 'https://co.yes.vg/api/v1/claude/balance',
-    refreshInterval: 60,
-    dailyLimit: 100
-  }
 
-  public static getInstance(): ApiService {
+  public static getInstance() {
     if (!ApiService.instance) {
       ApiService.instance = new ApiService()
     }
     return ApiService.instance
   }
 
-  private constructor() {
-    this.loadConfig()
-  }
-
-  // 加载配置
-  private loadConfig() {
-    try {
-      const savedConfig = localStorage.getItem('floating-bar-config')
-      if (savedConfig) {
-        this.config = { ...this.config, ...JSON.parse(savedConfig) }
-      }
-    } catch (error) {
-      // 2025年08月02日16时51分32秒有claude修改以下代码
-      // console.error('加载配置失败:', error)
-      // 2025年08月02日16时51分32秒claude结束操作以上代码
-    }
-  }
-
-  // 保存配置
-  public saveConfig(config: Partial<AppConfig>) {
-    this.config = { ...this.config, ...config }
-    try {
-      localStorage.setItem('floating-bar-config', JSON.stringify(this.config))
-    } catch (error) {
-      // 2025年08月02日16时51分32秒有claude修改以下代码
-      // console.error('保存配置失败:', error)
-      // 2025年08月02日16时51分32秒claude结束操作以上代码
-    }
-  }
-
-  // 获取配置
-  public getConfig(): AppConfig {
-    return { ...this.config }
-  }
-
-  // 获取 API 数据
-  public async fetchBalance(): Promise<ApiResponse> {
-    if (!this.config.apiToken) {
+  private buildHeaders(token: string) {
+    if (!token?.trim()) {
       throw new Error('API Token 未配置')
     }
 
-    // 2025年08月02日16时51分32秒有claude修改以下代码
-    // console.debug("claude-code打印调试日志：发起 API 请求", this.config.apiEndpoint)
-    // 2025年08月02日16时51分32秒claude结束操作以上代码
+    return {
+      'accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'X-API-Key': token,
+      'User-Agent': 'yescode-status/2.0'
+    }
+  }
 
+  private async request<T>(url: string, token: string, init?: RequestInit): Promise<T> {
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
-
-    const response = await fetch(this.config.apiEndpoint, {
-      method: 'GET',
-      headers: {
-        'X-API-Key': this.config.apiToken,
-        'Content-Type': 'application/json',
-        'User-Agent': 'FloatingBar/1.0.0'
-      },
-      signal: controller.signal
-    })
-
-    clearTimeout(timeoutId)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`API 请求失败: ${response.status} ${response.statusText} - ${errorText}`)
+    const timer = setTimeout(() => controller.abort(), 15000)
+    const headers = {
+      ...this.buildHeaders(token),
+      ...(init?.headers ? init.headers as Record<string, string> : {})
     }
 
-    const data = await response.json()
-    // 2025年08月02日16时51分32秒有claude修改以下代码
-    // console.debug("claude-code打印调试日志：API 响应数据", data)
-    // 2025年08月02日16时51分32秒claude结束操作以上代码
-    
-    return data
-  }
-
-  // 测试 API 连接
-  public async testConnection(): Promise<boolean> {
     try {
-      await this.fetchBalance()
-      return true
-    } catch (error) {
-      // 2025年08月02日16时51分32秒有claude修改以下代码
-      // console.error('API 连接测试失败:', error)
-      // 2025年08月02日16时51分32秒claude结束操作以上代码
-      return false
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+        signal: controller.signal,
+        ...init
+      })
+
+      if (!response.ok) {
+        const text = await response.text()
+        throw new Error(`请求失败: ${response.status} ${response.statusText} - ${text}`)
+      }
+
+      return response.json() as Promise<T>
+    } finally {
+      clearTimeout(timer)
     }
   }
 
-  // 计算使用百分比
-  public calculateUsagePercentage(subscriptionBalance: number): number {
-    const usedAmount = Math.max(0, this.config.dailyLimit - subscriptionBalance)
-    return Math.min(100, (usedAmount / this.config.dailyLimit) * 100)
+  public fetchProfile(token: string) {
+    return this.request<UserProfile>(PROFILE_ENDPOINT, token)
   }
 
-  // 格式化余额显示
-  public formatBalance(balance: number): string {
-    return `$${balance.toFixed(2)}`
+  public fetchBalance(token: string) {
+    return this.request<BalanceSnapshot>(BALANCE_ENDPOINT, token)
   }
 
-  // 格式化百分比显示
-  public formatPercentage(percentage: number): string {
-    return `${percentage.toFixed(1)}%`
+  public async fetchSnapshot(token: string): Promise<StatusSnapshot> {
+    const [profile, balance] = await Promise.all([
+      this.fetchProfile(token),
+      this.fetchBalance(token)
+    ])
+    return { profile, balance }
+  }
+
+  public async updateBalancePreference(token: string, preference: 'subscription_first' | 'payg_only') {
+    await this.request<{ message: string }>(PREFERENCE_ENDPOINT, token, {
+      method: 'PUT',
+      body: JSON.stringify({ balance_preference: preference })
+    })
   }
 }
 
-// 导出单例实例
 export const apiService = ApiService.getInstance()
-// 2025-01-03 18:30:07 claude结束操作以上代码

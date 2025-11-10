@@ -1,31 +1,55 @@
-/* 2025-01-03 20:00:00 claude修改以下代码 */
-* {
-  margin: 0;
-  padding: 0;
+:root {
+  font-family: 'Inter', 'Segoe UI', 'SF Pro Display', system-ui, -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+  color-scheme: dark;
+  --glass-bg: rgba(18, 18, 20, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --surface: rgba(30, 30, 38, 0.9);
+  --text-primary: #f3f6ff;
+  --text-secondary: rgba(243, 246, 255, 0.7);
+  --accent: linear-gradient(120deg, #8f73ff, #4cc9f0);
+  --accent-strong: #8f73ff;
+  --danger: #ff6b81;
+  --success: #2dd4bf;
+  --warning: #fbbf24;
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   width: 100%;
   height: 100%;
-  background: transparent !important;
-  overflow: hidden;
   margin: 0;
-  padding: 0;
+  background: transparent;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
-  background: transparent !important;
+  color: var(--text-primary);
+  font-size: 14px;
+  background: transparent;
   -webkit-app-region: no-drag;
 }
 
 #app {
   width: 100%;
   height: 100%;
-  background: transparent !important;
-  -webkit-app-region: no-drag;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  background: transparent;
 }
-/* 2025-01-03 20:00:00 claude结束操作以上代码 */
+
+button {
+  font-family: inherit;
+}
+
+.frosted-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(13, 13, 18, 0.45);
+  backdrop-filter: blur(18px);
+}
