@@ -17,19 +17,33 @@ const isMac = process.platform === 'darwin'
 let isQuitting = false
 
 let floatingWindow: BrowserWindow | null = null
-let taskbarWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let savedFloatingPosition = { x: 0, y: 0 }
+let isCapsule = false
+let tray: Tray | null = null
+let savedFloatingPosition = { x: 0, y: 0 }
+
+const PANEL_BOUNDS = { width: 360, height: 156 }
+const CAPSULE_BOUNDS = { width: 280, height: 130 }
+
+function loadRenderer(hash = '') {
+  if (!floatingWindow) return
+  if (VITE_DEV_SERVER_URL) {
+    floatingWindow.loadURL(hash ? `${VITE_DEV_SERVER_URL}#/${hash}` : VITE_DEV_SERVER_URL)
+  } else {
+    floatingWindow.loadFile(path.join(RENDERER_DIST, 'index.html'), hash ? { hash } : undefined)
+  }
+}
 
 function createFloatingWindow() {
   const primaryDisplay = screen.getPrimaryDisplay()
   const { width } = primaryDisplay.workAreaSize
-  const startX = savedFloatingPosition.x || Math.floor((width - 360) / 2)
+  const startX = savedFloatingPosition.x || Math.floor((width - PANEL_BOUNDS.width) / 2)
   const startY = savedFloatingPosition.y || 20
 
   floatingWindow = new BrowserWindow({
-    width: 360,
-    height: 156,
+    width: PANEL_BOUNDS.width,
+    height: PANEL_BOUNDS.height,
     x: startX,
     y: startY,
     frame: false,
@@ -63,84 +77,43 @@ function createFloatingWindow() {
     floatingWindow?.show()
   })
 
-  if (VITE_DEV_SERVER_URL) {
-    floatingWindow.loadURL(VITE_DEV_SERVER_URL)
-  } else {
-    floatingWindow.loadFile(path.join(RENDERER_DIST, 'index.html'))
-  }
+  loadRenderer()
 }
 
-function createTaskbarWindow() {
-  taskbarWindow = new BrowserWindow({
-    width: 260,
-    height: 80,
-    frame: false,
-    transparent: true,
-    resizable: false,
-    show: false,
-    skipTaskbar: true,
-    alwaysOnTop: true,
-    focusable: false,
-    backgroundColor: '#00000000',
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
-      contextIsolation: true,
-      webSecurity: false
-    }
+function showPanel() {
+  if (!floatingWindow) return
+  isCapsule = false
+  floatingWindow.setSkipTaskbar(false)
+  floatingWindow.setAlwaysOnTop(true, 'screen-saver')
+  floatingWindow.setBounds({
+    width: PANEL_BOUNDS.width,
+    height: PANEL_BOUNDS.height,
+    x: savedFloatingPosition.x || floatingWindow.getBounds().x,
+    y: savedFloatingPosition.y || floatingWindow.getBounds().y
   })
-
-  positionTaskbarWindow()
-
-  taskbarWindow.once('ready-to-show', () => {
-    if (taskbarWindow?.showInactive) {
-      taskbarWindow.showInactive()
-    } else {
-      taskbarWindow?.show()
-    }
-  })
-
-  taskbarWindow.on('close', event => {
-    if (!isQuitting) {
-      event.preventDefault()
-      taskbarWindow?.hide()
-    }
-  })
-
-  if (VITE_DEV_SERVER_URL) {
-    taskbarWindow.loadURL(`${VITE_DEV_SERVER_URL}#/taskbar`)
-  } else {
-    taskbarWindow.loadFile(path.join(RENDERER_DIST, 'index.html'), { hash: 'taskbar' })
-  }
+  loadRenderer()
+  floatingWindow.show()
+  floatingWindow.focus()
 }
 
-function positionTaskbarWindow() {
-  if (!taskbarWindow) return
+function showCapsule() {
+  if (!floatingWindow) return
+  isCapsule = true
+  floatingWindow.setSkipTaskbar(true)
   const display = screen.getPrimaryDisplay()
   const { workArea } = display
-  const bounds = taskbarWindow.getBounds()
-
-  const x = Math.floor(workArea.x + workArea.width - bounds.width - 12)
-  const y = isMac ? workArea.y + 28 : workArea.y + workArea.height - bounds.height - 12
-  taskbarWindow.setPosition(x, y)
-}
-
-function toggleTaskbarPanel() {
-  if (!taskbarWindow) return
-  if (taskbarWindow.isVisible()) {
-    taskbarWindow.hide()
-  } else {
-    positionTaskbarWindow()
-    taskbarWindow.show()
-    taskbarWindow.focus()
-  }
+  const x = Math.floor(workArea.x + workArea.width - CAPSULE_BOUNDS.width - 12)
+  const y = isMac ? workArea.y + 28 : workArea.y + workArea.height - CAPSULE_BOUNDS.height - 32
+  floatingWindow.setBounds({ width: CAPSULE_BOUNDS.width, height: CAPSULE_BOUNDS.height, x, y })
+  loadRenderer('capsule')
+  floatingWindow.showInactive?.()
 }
 
 function openFloatingWindow() {
   if (!floatingWindow) {
     createFloatingWindow()
   } else {
-    floatingWindow.show()
-    floatingWindow.focus()
+    showPanel()
   }
 }
 
@@ -171,14 +144,20 @@ function createTray() {
   tray.setToolTip('yesCode Status')
 
   const contextMenu = Menu.buildFromTemplate([
-    { label: '显示悬浮窗', click: () => openFloatingWindow() },
-    { label: '显示 / 隐藏余额胶囊', click: () => toggleTaskbarPanel() },
+    { label: '打开主面板', click: () => showPanel() },
+    { label: '显示余额胶囊', click: () => showCapsule() },
     { type: 'separator' },
     { label: '退出', click: () => app.quit() }
   ])
 
   tray.setContextMenu(contextMenu)
-  tray.on('click', () => toggleTaskbarPanel())
+  tray.on('click', () => {
+    if (isCapsule) {
+      showPanel()
+    } else {
+      showCapsule()
+    }
+  })
   if (isMac) {
     tray.setIgnoreDoubleClickEvents(true)
   }
@@ -240,7 +219,11 @@ ipcMain.handle('open-floating-window', () => {
 })
 
 ipcMain.handle('toggle-taskbar-panel', () => {
-  toggleTaskbarPanel()
+  if (isCapsule) {
+    showPanel()
+  } else {
+    showCapsule()
+  }
 })
 
 ipcMain.handle('minimize-window', () => {
@@ -262,9 +245,7 @@ ipcMain.handle('update-tray-tooltip', (_event, payload: { total: number; usage: 
 
 app.whenReady().then(() => {
   createFloatingWindow()
-  createTaskbarWindow()
   createTray()
-  screen.on('display-metrics-changed', () => positionTaskbarWindow())
 })
 
 app.on('activate', () => {
