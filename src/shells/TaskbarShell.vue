@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
 import TaskbarPanel from '../components/TaskbarPanel.vue'
 import { useYescodeStore } from '../composables/useYescodeStore'
 import { configService } from '../services/configService'
 
-const { state, usagePercentage, healthLevel, refreshSnapshot, startAutoRefresh, balancePreference } =
+const { state, usagePercentage, healthLevel, refreshSnapshot, startAutoRefresh, balancePreference, updatePreference } =
   useYescodeStore()
 const electronEnabled = typeof window !== 'undefined' && !!window.electronAPI
 
@@ -33,9 +33,23 @@ const hideCapsule = () => {
   }
 }
 
+const changePreference = async (value: 'subscription_first' | 'payg_only') => {
+  if (value === balancePreference.value) return
+  await updatePreference(value)
+}
+
 onMounted(() => {
   ensureData()
 })
+
+watch(
+  () => configService.isConfigured.value,
+  configured => {
+    if (configured) {
+      ensureData()
+    }
+  }
+)
 </script>
 
 <template>
@@ -49,6 +63,7 @@ onMounted(() => {
       @open-settings="openSettings"
       @expand="expandPanel"
       @hide="hideCapsule"
+      @change-preference="changePreference"
     />
   </div>
 </template>

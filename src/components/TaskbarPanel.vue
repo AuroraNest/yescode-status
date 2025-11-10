@@ -20,7 +20,7 @@ const props = defineProps<{
   preference: 'subscription_first' | 'payg_only'
 }>()
 
-const emit = defineEmits<{ openSettings: []; expand: []; hide: [] }>()
+const emit = defineEmits<{ openSettings: []; expand: []; hide: []; changePreference: ['subscription_first' | 'payg_only'] }>()
 
 const planName = computed(() => {
   if (!props.configured) return t('taskbar.notConfigured')
@@ -59,7 +59,21 @@ const updatedAt = computed(() =>
       </div>
 
       <div class="preference">
-        {{ t(`taskbar.preference.${preference}`) }}
+        <span>{{ t(`taskbar.preference.${preference}`) }}</span>
+        <div class="preference-toggle">
+          <button
+            :class="{ active: preference === 'subscription_first' }"
+            @click.stop="emit('changePreference', 'subscription_first')"
+          >
+            {{ t('panel.preference.subscription_first') }}
+          </button>
+          <button
+            :class="{ active: preference === 'payg_only' }"
+            @click.stop="emit('changePreference', 'payg_only')"
+          >
+            {{ t('panel.preference.payg_only') }}
+          </button>
+        </div>
       </div>
 
       <footer>
@@ -184,6 +198,29 @@ footer {
 .preference {
   font-size: 11px;
   color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.preference-toggle {
+  display: flex;
+  gap: 6px;
+}
+
+.preference-toggle button {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 2px 8px;
+}
+
+.preference-toggle button.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+  border-color: transparent;
 }
 
 .empty {

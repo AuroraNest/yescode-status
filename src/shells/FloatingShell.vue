@@ -12,7 +12,8 @@ const {
   healthLevel,
   refreshSnapshot,
   startAutoRefresh,
-  balancePreference
+  balancePreference,
+  updatePreference
 } = useYescodeStore()
 
 const showSettings = ref(!configService.isConfigured.value)
@@ -62,6 +63,11 @@ const handleSettingsSaved = async () => {
   await refreshSnapshot(true)
   startAutoRefresh()
   await resizeWindow()
+}
+
+const changePreference = async (value: 'subscription_first' | 'payg_only') => {
+  if (value === balancePreference.value) return
+  await updatePreference(value)
 }
 
 onMounted(async () => {
@@ -119,12 +125,13 @@ onBeforeUnmount(() => {
         :health-level="healthLevel"
         :preference="balancePreference"
         :is-expanded="isExpanded"
-        @refresh="handleRefresh"
-        @open-settings="openSettings"
-        @toggle-expand="toggleExpand"
-        @minimize="minimizeWindow"
-      />
-    </div>
+      @refresh="handleRefresh"
+      @open-settings="openSettings"
+      @toggle-expand="toggleExpand"
+      @minimize="minimizeWindow"
+      @change-preference="changePreference"
+    />
+  </div>
 
     <SettingsModal
       :visible="showSettings"

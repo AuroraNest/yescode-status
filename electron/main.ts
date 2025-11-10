@@ -13,8 +13,8 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 
 type WindowMode = 'panel' | 'capsule'
 
-const PANEL_BOUNDS = { width: 360, height: 168 }
-const CAPSULE_BOUNDS = { width: 280, height: 136 }
+const PANEL_BOUNDS = { width: 360, height: 184 }
+const CAPSULE_BOUNDS = { width: 280, height: 140 }
 
 const isMac = process.platform === 'darwin'
 let isQuitting = false
@@ -22,6 +22,7 @@ let mode: WindowMode = 'capsule'
 
 let win: BrowserWindow | null = null
 let tray: Tray | null = null
+let trayBaseIcon: nativeImage | null = null
 let panelPosition = { x: 0, y: 20 }
 
 function resolveTrayIcon() {
@@ -103,6 +104,11 @@ function createWindow() {
     }
   })
 
+  win.on('minimize', (event) => {
+    event.preventDefault()
+    showCapsule()
+  })
+
   win.on('moved', () => {
     if (mode === 'panel' && win) {
       const bounds = win.getBounds()
@@ -153,7 +159,8 @@ function showPanel() {
 }
 
 function createTray() {
-  tray = new Tray(resolveTrayIcon())
+  trayBaseIcon = resolveTrayIcon()
+  tray = new Tray(trayBaseIcon)
   tray.setToolTip('yesCode Status')
 
   const contextMenu = Menu.buildFromTemplate([
@@ -188,6 +195,25 @@ function updateOverlayIcon(total: number) {
     </svg>`
   const image = nativeImage.createFromDataURL(`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`)
   win.setOverlayIcon(image.resize({ width: 26, height: 26 }), `余额 $${label}`)
+}
+
+function updateTrayIcon(total: number) {
+  if (!tray) return
+  if (!trayBaseIcon) {
+    trayBaseIcon = resolveTrayIcon()
+  }
+  if (total <= 0) {
+    tray.setImage(trayBaseIcon!)
+    return
+  }
+  const label = Math.max(0, Math.min(999, Math.round(total))).toString()
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+      <rect width="64" height="64" rx="12" ry="12" fill="#0b1121"/>
+      <text x="32" y="38" font-size="30" font-weight="700" text-anchor="middle" fill="#67e8f9">${label}</text>
+    </svg>`
+  const image = nativeImage.createFromDataURL(`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`)
+  tray.setImage(image.resize({ width: 32, height: 32 }))
 }
 
 ipcMain.handle('resize-window', (_event, height: number) => {
@@ -226,6 +252,7 @@ ipcMain.handle('update-tray-tooltip', (_event, payload: { total: number; usage: 
     tray.setTitle(`$${totalString}`)
   }
   updateOverlayIcon(totalValue)
+  updateTrayIcon(totalValue)
 })
 
 app.whenReady().then(() => {
