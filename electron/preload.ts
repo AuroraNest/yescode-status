@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openFloatingWindow: () => ipcRenderer.invoke('open-floating-window'),
   toggleTaskbarPanel: () => ipcRenderer.invoke('toggle-taskbar-panel'),
   minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
+  hideWindow: () => ipcRenderer.invoke('hide-window'),
   updateTrayTooltip: (payload: { total: number; usage: number }) =>
     ipcRenderer.invoke('update-tray-tooltip', payload)
 })

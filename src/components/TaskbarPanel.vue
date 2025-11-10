@@ -20,7 +20,7 @@ const props = defineProps<{
   preference: 'subscription_first' | 'payg_only'
 }>()
 
-const emit = defineEmits<{ openSettings: []; expand: [] }>()
+const emit = defineEmits<{ openSettings: []; expand: []; hide: [] }>()
 
 const planName = computed(() => {
   if (!props.configured) return t('taskbar.notConfigured')
@@ -67,6 +67,7 @@ const updatedAt = computed(() =>
         <div class="actions">
           <button @click.stop="emit('expand')">{{ t('taskbar.enlarge') }}</button>
           <button @click.stop="emit('openSettings')">{{ t('taskbar.settings') }}</button>
+          <button @click.stop="$emit('hide')">{{ t('taskbar.hide') }}</button>
         </div>
       </footer>
     </template>

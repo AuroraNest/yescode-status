@@ -27,6 +27,12 @@ const expandPanel = () => {
   }
 }
 
+const hideCapsule = () => {
+  if (electronEnabled && window.electronAPI.hideWindow) {
+    window.electronAPI.hideWindow()
+  }
+}
+
 onMounted(() => {
   ensureData()
 })
@@ -42,6 +48,7 @@ onMounted(() => {
       :preference="balancePreference"
       @open-settings="openSettings"
       @expand="expandPanel"
+      @hide="hideCapsule"
     />
   </div>
 </template>
