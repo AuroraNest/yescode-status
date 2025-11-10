@@ -3,10 +3,10 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import FloatingShell from './shells/FloatingShell.vue'
 import TaskbarShell from './shells/TaskbarShell.vue'
 
-const mode = ref(window.location.hash.includes('taskbar') ? 'taskbar' : 'floating')
+const mode = ref(window.location.hash.includes('capsule') ? 'capsule' : 'floating')
 
 const syncMode = () => {
-  mode.value = window.location.hash.includes('taskbar') ? 'taskbar' : 'floating'
+  mode.value = window.location.hash.includes('capsule') ? 'capsule' : 'floating'
 }
 
 onMounted(() => {
