@@ -44,7 +44,8 @@ function createFloatingWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      webSecurity: false
     }
   })
 
@@ -83,7 +84,8 @@ function createTaskbarWindow() {
     backgroundColor: '#00000000',
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
-      contextIsolation: true
+      contextIsolation: true,
+      webSecurity: false
     }
   })
 
