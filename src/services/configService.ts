@@ -13,6 +13,7 @@ export interface UserPreferences {
   showFloatingBar: boolean
   showCliTips: boolean
   compactFloatingMode: boolean
+  language: 'zh' | 'en'
 }
 
 export class ConfigService {
@@ -27,7 +28,8 @@ export class ConfigService {
     launchTaskbarPanel: true,
     showFloatingBar: true,
     showCliTips: false,
-    compactFloatingMode: false
+    compactFloatingMode: false,
+    language: 'zh'
   })
 
   public isConfigured = ref(false)
@@ -103,6 +105,7 @@ export class ConfigService {
     this.preferences.showFloatingBar = true
     this.preferences.showCliTips = false
     this.preferences.compactFloatingMode = false
+    this.preferences.language = 'zh'
     this.isConfigured.value = false
   }
 }

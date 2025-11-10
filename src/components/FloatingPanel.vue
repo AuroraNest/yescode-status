@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { StatusSnapshot } from '../services/apiService'
+import { useI18n } from '../i18n'
 
 interface PanelState {
   status: 'idle' | 'loading' | 'ready' | 'error'
@@ -8,6 +9,8 @@ interface PanelState {
   snapshot: StatusSnapshot | null
   lastUpdated: Date | null
 }
+
+const { t } = useI18n()
 
 const props = defineProps<{
   state: PanelState
@@ -21,21 +24,22 @@ const emit = defineEmits<{
   refresh: []
   openSettings: []
   toggleExpand: [force?: boolean]
+  minimize: []
 }>()
 
 const headline = computed(() => {
   if (props.state.status === 'error') {
-    return props.state.error || '连接失败'
+    return props.state.error || t('status.error')
   }
   if (!props.state.snapshot) {
-    if (props.state.status === 'loading') return '正在连接 yesCode...'
-    return '等待配置 API Token'
+    if (props.state.status === 'loading') return t('status.connecting')
+    return t('status.waiting')
   }
   return props.state.snapshot.profile.username || 'yesCode'
 })
 
 const planName = computed(() => {
-  if (!props.state.snapshot) return '未配置'
+  if (!props.state.snapshot) return t('status.waiting')
   return props.state.snapshot.profile.subscription_plan?.name ?? 'Standard'
 })
 
@@ -57,22 +61,20 @@ const shieldClass = computed(() => {
   <section class="panel" :class="{ collapsed: !isExpanded }">
     <div class="panel__header" @dblclick="emit('toggleExpand')">
       <div class="title">
-        <div class="badge">yesCode</div>
+        <div class="badge">{{ t('brand') }}</div>
         <h1>{{ headline }}</h1>
         <p class="subtitle">
           <span>{{ planName }}</span>
           <span>•</span>
-          <span v-if="state.lastUpdated">更新 {{ state.lastUpdated?.toLocaleTimeString() }}</span>
-          <span v-else>尚未同步</span>
+          <span v-if="state.lastUpdated">{{ t('status.updated') }} {{ state.lastUpdated?.toLocaleTimeString() }}</span>
+          <span v-else>—</span>
         </p>
       </div>
 
       <div class="actions">
         <button class="icon" title="刷新" @click="emit('refresh')">↻</button>
-        <button class="icon" title="设置" @click="emit('openSettings')">⚙</button>
-        <button class="icon" title="收起" @click="emit('toggleExpand')">
-          {{ isExpanded ? '–' : '+' }}
-        </button>
+        <button class="icon" title="设置" @click.stop="emit('openSettings')">⚙</button>
+        <button class="icon" title="最小化" @click.stop="emit('minimize')">▁</button>
       </div>
     </div>
 
@@ -80,16 +82,16 @@ const shieldClass = computed(() => {
       <div v-if="isExpanded" class="panel__body">
         <div class="shield-block" :class="shieldClass">
           <div class="primary">
-            <span class="label">总余额</span>
+            <span class="label">{{ t('panel.total') }}</span>
             <div class="value">${{ totalBalance.toFixed(2) }}</div>
           </div>
           <div class="secondary">
             <div>
-              <span>订阅</span>
+              <span>{{ t('panel.subscription') }}</span>
               <strong>${{ subscriptionBalance.toFixed(2) }}</strong>
             </div>
             <div>
-              <span>按量</span>
+              <span>{{ t('panel.payg') }}</span>
               <strong>${{ paygBalance.toFixed(2) }}</strong>
             </div>
           </div>
@@ -97,26 +99,26 @@ const shieldClass = computed(() => {
 
         <div class="metrics">
           <article>
-            <span class="label">订阅使用</span>
+            <span class="label">{{ t('panel.dailyUsage') }}</span>
             <div class="progress">
               <div class="progress__fill" :style="{ width: usagePercentage + '%' }"></div>
             </div>
-            <small>{{ usagePercentage.toFixed(1) }}% of daily quota</small>
+            <small>{{ usagePercentage.toFixed(1) }}% {{ t('panel.dailyHint') }}</small>
           </article>
           <article>
-            <span class="label">周使用</span>
+            <span class="label">{{ t('panel.weeklyUsage') }}</span>
             <div class="progress warm">
               <div class="progress__fill" :style="{ width: weeklyPercentage + '%' }"></div>
             </div>
-            <small>本周花费 ${{ weeklySpent.toFixed(2) }}</small>
+            <small>{{ t('panel.weekSpent') }} ${{ weeklySpent.toFixed(2) }}</small>
           </article>
         </div>
 
         <div class="cta-row">
           <div class="hint">
-            {{ state.status === 'idle' ? '点击下方配置 API Token 以开始同步' : '点击刷新或设置以掌控额度' }}
+            {{ state.status === 'idle' ? t('panel.hintWaiting') : t('panel.hintReady') }}
           </div>
-          <button class="primary" @click="emit('openSettings')">配置 / 管理</button>
+          <button class="primary" @click="emit('openSettings')">{{ t('panel.cta') }}</button>
         </div>
       </div>
     </transition>
@@ -125,19 +127,20 @@ const shieldClass = computed(() => {
 
 <style scoped>
 .panel {
-  width: 420px;
-  padding: 18px 20px 16px;
-  border-radius: 22px;
-  background: radial-gradient(circle at top, rgba(98, 85, 255, 0.35), rgba(14, 15, 26, 0.95));
+  width: 360px;
+  padding: 16px 18px 14px;
+  border-radius: 20px;
+  background: rgba(15, 17, 26, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 30px 60px rgba(4, 5, 18, 0.55);
-  backdrop-filter: blur(16px);
+  box-shadow: 0 24px 50px rgba(4, 5, 18, 0.55);
+  backdrop-filter: blur(14px);
   color: var(--text-primary);
   transition: padding 0.3s ease;
+  -webkit-app-region: drag;
 }
 
 .panel.collapsed {
-  padding-bottom: 10px;
+  padding-bottom: 8px;
 }
 
 .panel__header {
@@ -147,7 +150,12 @@ const shieldClass = computed(() => {
   -webkit-app-region: drag;
 }
 
-.panel__header .title {
+.panel__header .title,
+.panel__body,
+.actions,
+.shield-block,
+.metrics article,
+.cta-row button {
   -webkit-app-region: no-drag;
 }
 
