@@ -4,7 +4,8 @@ import TaskbarPanel from '../components/TaskbarPanel.vue'
 import { useYescodeStore } from '../composables/useYescodeStore'
 import { configService } from '../services/configService'
 
-const { state, usagePercentage, healthLevel, refreshSnapshot, startAutoRefresh } = useYescodeStore()
+const { state, usagePercentage, healthLevel, refreshSnapshot, startAutoRefresh, balancePreference } =
+  useYescodeStore()
 const electronEnabled = typeof window !== 'undefined' && !!window.electronAPI
 
 const ensureData = async () => {
@@ -15,6 +16,12 @@ const ensureData = async () => {
 }
 
 const openSettings = () => {
+  if (electronEnabled && window.electronAPI.openFloatingWindow) {
+    window.electronAPI.openFloatingWindow()
+  }
+}
+
+const expandPanel = () => {
   if (electronEnabled && window.electronAPI.openFloatingWindow) {
     window.electronAPI.openFloatingWindow()
   }
@@ -31,7 +38,10 @@ onMounted(() => {
       :state="state"
       :usage-percentage="usagePercentage"
       :health-level="healthLevel"
+      :configured="configService.isConfigured.value"
+      :preference="balancePreference"
       @open-settings="openSettings"
+      @expand="expandPanel"
     />
   </div>
 </template>

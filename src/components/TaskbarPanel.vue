@@ -16,11 +16,14 @@ const props = defineProps<{
   state: PanelState
   usagePercentage: number
   healthLevel: 'ok' | 'warn' | 'danger'
+  configured: boolean
+  preference: 'subscription_first' | 'payg_only'
 }>()
 
-const emit = defineEmits<{ openSettings: [] }>()
+const emit = defineEmits<{ openSettings: []; expand: [] }>()
 
 const planName = computed(() => {
+  if (!props.configured) return t('taskbar.notConfigured')
   if (props.state.status === 'error') return t('taskbar.unavailable')
   if (!props.state.snapshot) return t('status.waiting')
   return props.state.snapshot.profile.subscription_plan?.name ?? 'yesCode'
@@ -34,30 +37,45 @@ const updatedAt = computed(() =>
 </script>
 
 <template>
-  <div class="chip" :class="healthLevel" @click="emit('openSettings')">
-    <header>
-      <div class="plan">{{ planName }}</div>
-      <div class="usage">
-        <strong>{{ usagePercentage.toFixed(0) }}%</strong>
-        <span>{{ t('taskbar.subscriptionUsed') }}</span>
-      </div>
-    </header>
+  <div class="chip" :class="healthLevel">
+    <template v-if="configured">
+      <header>
+        <div class="plan">{{ planName }}</div>
+        <div class="usage">
+          <strong>{{ usagePercentage.toFixed(0) }}%</strong>
+          <span>{{ t('taskbar.subscriptionUsed') }}</span>
+        </div>
+      </header>
 
-    <div class="totals">
-      <div class="value">
-        <span class="label">{{ t('taskbar.total') }}</span>
-        <strong>${{ total.toFixed(2) }}</strong>
+      <div class="totals">
+        <div class="value">
+          <span class="label">{{ t('taskbar.total') }}</span>
+          <strong>${{ total.toFixed(2) }}</strong>
+        </div>
+        <div class="value stacked">
+          <span>{{ t('taskbar.subscription') }} ${{ subscription.toFixed(2) }}</span>
+          <span>{{ t('taskbar.payg') }} ${{ payg.toFixed(2) }}</span>
+        </div>
       </div>
-      <div class="value stacked">
-        <span>{{ t('taskbar.subscription') }} ${{ subscription.toFixed(2) }}</span>
-        <span>{{ t('taskbar.payg') }} ${{ payg.toFixed(2) }}</span>
-      </div>
-    </div>
 
-    <footer>
-      <span>{{ t('taskbar.updated') }} {{ updatedAt }}</span>
-      <button @click.stop="emit('openSettings')">{{ t('taskbar.open') }}</button>
-    </footer>
+      <div class="preference">
+        {{ t(`taskbar.preference.${preference}`) }}
+      </div>
+
+      <footer>
+        <span>{{ t('taskbar.updated') }} {{ updatedAt }}</span>
+        <div class="actions">
+          <button @click.stop="emit('expand')">{{ t('taskbar.enlarge') }}</button>
+          <button @click.stop="emit('openSettings')">{{ t('taskbar.settings') }}</button>
+        </div>
+      </footer>
+    </template>
+    <template v-else>
+      <div class="empty">
+        <p>{{ t('taskbar.notConfigured') }}</p>
+        <button @click.stop="emit('openSettings')">{{ t('taskbar.settings') }}</button>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -148,12 +166,38 @@ footer {
   color: var(--text-secondary);
 }
 
-footer button {
+.actions {
+  display: flex;
+  gap: 6px;
+}
+
+.actions button {
   border: none;
   border-radius: 999px;
   padding: 4px 10px;
   background: rgba(255, 255, 255, 0.15);
   color: var(--text-primary);
   font-size: 11px;
+}
+
+.preference {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.empty {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.empty button {
+  align-self: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  padding: 4px 12px;
+  background: transparent;
+  color: var(--text-primary);
 }
 </style>

@@ -5,7 +5,15 @@ import SettingsModal from '../components/SettingsModal.vue'
 import { useYescodeStore } from '../composables/useYescodeStore'
 import { configService } from '../services/configService'
 
-const { state, usagePercentage, weeklyPercentage, healthLevel, refreshSnapshot, startAutoRefresh } = useYescodeStore()
+const {
+  state,
+  usagePercentage,
+  weeklyPercentage,
+  healthLevel,
+  refreshSnapshot,
+  startAutoRefresh,
+  balancePreference
+} = useYescodeStore()
 
 const showSettings = ref(!configService.isConfigured.value)
 const isExpanded = ref(true)
@@ -109,6 +117,7 @@ onBeforeUnmount(() => {
         :usage-percentage="usagePercentage"
         :weekly-percentage="weeklyPercentage"
         :health-level="healthLevel"
+        :preference="balancePreference"
         :is-expanded="isExpanded"
         @refresh="handleRefresh"
         @open-settings="openSettings"
