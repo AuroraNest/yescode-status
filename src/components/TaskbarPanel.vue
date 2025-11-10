@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { StatusSnapshot } from '../services/apiService'
+import { useI18n } from '../i18n'
 
 interface PanelState {
   status: 'idle' | 'loading' | 'ready' | 'error'
@@ -7,6 +9,8 @@ interface PanelState {
   snapshot: StatusSnapshot | null
   lastUpdated: Date | null
 }
+
+const { t } = useI18n()
 
 const props = defineProps<{
   state: PanelState
@@ -16,44 +20,59 @@ const props = defineProps<{
 
 const emit = defineEmits<{ openSettings: [] }>()
 
-const totalBalance = () => props.state.snapshot?.balance.total_balance ?? 0
+const planName = computed(() => {
+  if (props.state.status === 'error') return t('taskbar.unavailable')
+  if (!props.state.snapshot) return t('status.waiting')
+  return props.state.snapshot.profile.subscription_plan?.name ?? 'yesCode'
+})
+const total = computed(() => props.state.snapshot?.balance.total_balance ?? 0)
+const subscription = computed(() => props.state.snapshot?.balance.subscription_balance ?? 0)
+const payg = computed(() => props.state.snapshot?.balance.pay_as_you_go_balance ?? 0)
+const updatedAt = computed(() =>
+  props.state.lastUpdated ? props.state.lastUpdated.toLocaleTimeString() : '—'
+)
 </script>
 
 <template>
-  <button class="chip" :class="healthLevel" @click="emit('openSettings')">
-    <div class="chip__left">
-      <span class="label">
-        {{
-          state.status === 'error'
-            ? '暂不可用'
-            : state.snapshot
-              ? state.snapshot.profile.subscription_plan?.name || 'yesCode'
-              : '未配置'
-        }}
-      </span>
-      <strong>${{ totalBalance().toFixed(2) }}</strong>
+  <div class="chip" :class="healthLevel" @click="emit('openSettings')">
+    <header>
+      <div class="plan">{{ planName }}</div>
+      <div class="usage">
+        <strong>{{ usagePercentage.toFixed(0) }}%</strong>
+        <span>{{ t('taskbar.subscriptionUsed') }}</span>
+      </div>
+    </header>
+
+    <div class="totals">
+      <div class="value">
+        <span class="label">{{ t('taskbar.total') }}</span>
+        <strong>${{ total.toFixed(2) }}</strong>
+      </div>
+      <div class="value stacked">
+        <span>{{ t('taskbar.subscription') }} ${{ subscription.toFixed(2) }}</span>
+        <span>{{ t('taskbar.payg') }} ${{ payg.toFixed(2) }}</span>
+      </div>
     </div>
-    <div class="chip__right">
-      <span>{{ usagePercentage.toFixed(0) }}%</span>
-      <small>订阅已用</small>
-    </div>
-  </button>
+
+    <footer>
+      <span>{{ t('taskbar.updated') }} {{ updatedAt }}</span>
+      <button @click.stop="emit('openSettings')">{{ t('taskbar.open') }}</button>
+    </footer>
+  </div>
 </template>
 
 <style scoped>
 .chip {
-  width: 240px;
-  height: 64px;
-  border-radius: 999px;
+  width: 260px;
+  border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(8, 10, 18, 0.82);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  background: rgba(8, 10, 18, 0.9);
+  box-shadow: 0 18px 26px rgba(0, 0, 0, 0.4);
   color: var(--text-primary);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 18px;
-  gap: 16px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px 10px;
   cursor: pointer;
 }
 
@@ -71,30 +90,70 @@ const totalBalance = () => props.state.snapshot?.balance.total_balance ?? 0
   border-color: rgba(248, 113, 113, 0.6);
 }
 
-.chip__left {
-  text-align: left;
+header {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  justify-content: space-between;
+  align-items: baseline;
 }
 
-.chip__left .label {
-  font-size: 12px;
+.plan {
+  font-size: 13px;
   color: var(--text-secondary);
 }
 
-.chip__left strong {
+.usage {
+  text-align: right;
+  line-height: 1.1;
+}
+
+.usage strong {
+  font-size: 18px;
+}
+
+.usage span {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.totals {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.value strong {
   font-size: 20px;
 }
 
-.chip__right {
-  text-align: right;
-  font-size: 12px;
-  line-height: 1.2;
+.value .label {
+  font-size: 11px;
+  color: var(--text-secondary);
 }
 
-.chip__right span {
-  font-size: 16px;
-  font-weight: 600;
+.value.stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+footer button {
+  border: none;
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+  font-size: 11px;
 }
 </style>

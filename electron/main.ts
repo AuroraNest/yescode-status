@@ -28,15 +28,15 @@ function createFloatingWindow() {
   const startY = savedFloatingPosition.y || 20
 
   floatingWindow = new BrowserWindow({
-    width: 380,
-    height: 168,
+    width: 360,
+    height: 156,
     x: startX,
     y: startY,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
-    skipTaskbar: true,
-    resizable: false,
+    skipTaskbar: false,
+    resizable: true,
     movable: true,
     show: false,
     backgroundColor: '#00000000',
@@ -184,6 +184,19 @@ function createTray() {
   }
 }
 
+function updateOverlayIcon(value: number) {
+  if (!floatingWindow || process.platform !== 'win32') return
+  const remaining = Math.max(0, Math.min(99, Math.round(value)))
+  const label = remaining.toString().padStart(2, '0')
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+      <rect width="64" height="64" rx="12" ry="12" fill="#111827ee"/>
+      <text x="32" y="42" font-size="34" font-weight="700" text-anchor="middle" fill="#60a5fa">${label}</text>
+    </svg>`
+  const image = nativeImage.createFromDataURL(`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`)
+  floatingWindow.setOverlayIcon(image.resize({ width: 26, height: 26 }), `剩余 ${label}%`)
+}
+
 ipcMain.handle('resize-window', (_event, height: number) => {
   if (!floatingWindow) return
   const display = screen.getPrimaryDisplay()
@@ -230,6 +243,10 @@ ipcMain.handle('toggle-taskbar-panel', () => {
   toggleTaskbarPanel()
 })
 
+ipcMain.handle('minimize-window', () => {
+  floatingWindow?.minimize()
+})
+
 ipcMain.handle('update-tray-tooltip', (_event, payload: { total: number; usage: number }) => {
   const totalValue = Number(payload?.total ?? 0)
   const usageValue = Number(payload?.usage ?? 0)
@@ -240,6 +257,7 @@ ipcMain.handle('update-tray-tooltip', (_event, payload: { total: number; usage: 
   if (tray && typeof tray.setTitle === 'function' && process.platform === 'darwin') {
     tray.setTitle(`$${totalString}`)
   }
+  updateOverlayIcon(Math.max(0, 100 - usageValue))
 })
 
 app.whenReady().then(() => {

@@ -3,17 +3,20 @@ import { computed, reactive, ref, watch } from 'vue'
 import { configService } from '../services/configService'
 import { apiService } from '../services/apiService'
 import { useYescodeStore } from '../composables/useYescodeStore'
+import { useI18n } from '../i18n'
 
 const props = defineProps<{ visible: boolean }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 
 const { state } = useYescodeStore()
+const { t } = useI18n()
 
 const form = reactive({
   apiToken: configService.config.apiToken || '',
   launchTaskbarPanel: configService.preferences.launchTaskbarPanel,
   showFloatingBar: configService.preferences.showFloatingBar,
-  compactFloatingMode: configService.preferences.compactFloatingMode
+  compactFloatingMode: configService.preferences.compactFloatingMode,
+  language: configService.preferences.language
 })
 
 const showToken = ref(false)
@@ -28,6 +31,7 @@ watch(
       form.launchTaskbarPanel = configService.preferences.launchTaskbarPanel
       form.showFloatingBar = configService.preferences.showFloatingBar
       form.compactFloatingMode = configService.preferences.compactFloatingMode
+      form.language = configService.preferences.language
       testResult.value = ''
     }
   }
@@ -44,7 +48,8 @@ const save = () => {
   configService.savePreferences({
     launchTaskbarPanel: form.launchTaskbarPanel,
     showFloatingBar: form.showFloatingBar,
-    compactFloatingMode: form.compactFloatingMode
+    compactFloatingMode: form.compactFloatingMode,
+    language: form.language
   })
   emit('saved')
 }
@@ -80,23 +85,23 @@ const testConnection = async () => {
       <div class="modal frosted-card">
         <header>
           <div>
-            <h2>配置 yesCode</h2>
-            <p>只需填入 API Token，其他信息将自动同步</p>
+            <h2>{{ t('settings.title') }}</h2>
+            <p>{{ t('settings.desc') }}</p>
           </div>
           <button class="close-btn" @click="close">×</button>
         </header>
 
         <section class="form">
-          <label>API Token</label>
+          <label>{{ t('settings.token') }}</label>
           <div class="token-row">
             <input
               :type="showToken ? 'text' : 'password'"
               v-model="form.apiToken"
-              placeholder="cr_xxxxxxxxxxxxx"
+              :placeholder="t('settings.tokenPlaceholder')"
               :class="{ invalid: !tokenValidation.valid }"
             />
             <button class="ghost" @click="showToken = !showToken" type="button">
-              {{ showToken ? '隐藏' : '显示' }}
+              {{ showToken ? t('settings.toggle.hide') : t('settings.toggle.show') }}
             </button>
           </div>
           <small v-if="!tokenValidation.valid" class="error">{{ tokenValidation.message }}</small>
@@ -105,30 +110,38 @@ const testConnection = async () => {
           <div class="toggles">
             <label>
               <input type="checkbox" v-model="form.launchTaskbarPanel" />
-              登录后自动显示任务栏面板
+              {{ t('settings.showTaskbar') }}
             </label>
             <label>
               <input type="checkbox" v-model="form.showFloatingBar" />
-              启用悬浮状态条
+              {{ t('settings.showFloating') }}
             </label>
             <label>
               <input type="checkbox" v-model="form.compactFloatingMode" />
-              使用紧凑模式（悬浮条更窄更贴边）
+              {{ t('settings.compact') }}
             </label>
+          </div>
+
+          <div class="language-row">
+            <label>{{ t('settings.language') }}</label>
+            <select v-model="form.language">
+              <option value="zh">{{ t('settings.langs.zh') }}</option>
+              <option value="en">{{ t('settings.langs.en') }}</option>
+            </select>
           </div>
 
           <div class="live-cards">
             <article>
-              <span class="label">订阅计划</span>
+              <span class="label">{{ t('settings.plan') }}</span>
               <strong>{{ state.snapshot?.profile.subscription_plan?.name ?? '待连接' }}</strong>
             </article>
             <article>
-              <span class="label">每日额度</span>
+              <span class="label">{{ t('settings.daily') }}</span>
               <strong>{{ state.snapshot?.profile.subscription_plan?.daily_balance ?? '—' }}</strong>
             </article>
             <article>
-              <span class="label">刷新频率</span>
-              <strong>每 60 秒</strong>
+              <span class="label">{{ t('settings.refresh') }}</span>
+              <strong>60s</strong>
             </article>
           </div>
         </section>
@@ -136,14 +149,14 @@ const testConnection = async () => {
         <section class="actions">
           <div class="left">
             <button class="ghost" type="button" @click="testConnection" :disabled="isTesting">
-              {{ isTesting ? '测试中...' : '测试连接' }}
+              {{ isTesting ? t('settings.testing') : t('settings.test') }}
             </button>
             <span class="test-result">{{ testResult }}</span>
           </div>
           <div class="right">
-            <button class="ghost danger" type="button" @click="resetAll">重置</button>
-            <button class="ghost" type="button" @click="close">取消</button>
-            <button class="primary" type="button" :disabled="!canSave" @click="save">保存</button>
+            <button class="ghost danger" type="button" @click="resetAll">{{ t('settings.reset') }}</button>
+            <button class="ghost" type="button" @click="close">{{ t('settings.cancel') }}</button>
+            <button class="primary" type="button" :disabled="!canSave" @click="save">{{ t('settings.save') }}</button>
           </div>
         </section>
       </div>
@@ -249,6 +262,21 @@ small.error {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+
+.language-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.language-row select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
 }
 
 .live-cards article {

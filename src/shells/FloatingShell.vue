@@ -41,6 +41,14 @@ const openSettings = () => {
   resizeWindow(SETTINGS_HEIGHT)
 }
 
+const minimizeWindow = () => {
+  if (electronEnabled && window.electronAPI.minimizeWindow) {
+    window.electronAPI.minimizeWindow()
+  } else {
+    isExpanded.value = false
+  }
+}
+
 const handleSettingsSaved = async () => {
   showSettings.value = false
   await refreshSnapshot(true)
@@ -105,6 +113,7 @@ onBeforeUnmount(() => {
         @refresh="handleRefresh"
         @open-settings="openSettings"
         @toggle-expand="toggleExpand"
+        @minimize="minimizeWindow"
       />
     </div>
 
