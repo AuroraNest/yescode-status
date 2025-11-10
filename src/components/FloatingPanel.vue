@@ -26,6 +26,7 @@ const emit = defineEmits<{
   openSettings: []
   toggleExpand: [force?: boolean]
   minimize: []
+  changePreference: ['subscription_first' | 'payg_only']
 }>()
 
 const headline = computed(() => {
@@ -100,7 +101,21 @@ const shieldClass = computed(() => {
         </div>
 
         <div class="preference-chip">
-          {{ t('panel.preference.title') }} · {{ preferenceText }}
+          <span>{{ t('panel.preference.title') }}</span>
+          <div class="preference-toggle">
+            <button
+              :class="{ active: preference === 'subscription_first' }"
+              @click="emit('changePreference', 'subscription_first')"
+            >
+              {{ t('panel.preference.subscription_first') }}
+            </button>
+            <button
+              :class="{ active: preference === 'payg_only' }"
+              @click="emit('changePreference', 'payg_only')"
+            >
+              {{ t('panel.preference.payg_only') }}
+            </button>
+          </div>
         </div>
 
         <div class="metrics">
@@ -134,12 +149,12 @@ const shieldClass = computed(() => {
 <style scoped>
 .panel {
   width: 360px;
-  padding: 16px 18px 14px;
-  border-radius: 20px;
-  background: rgba(15, 17, 26, 0.94);
+  padding: 18px 20px 16px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, rgba(13, 16, 27, 0.98), rgba(8, 12, 22, 0.92));
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 24px 50px rgba(4, 5, 18, 0.55);
-  backdrop-filter: blur(14px);
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(18px);
   color: var(--text-primary);
   transition: padding 0.3s ease;
   -webkit-app-region: drag;
@@ -214,12 +229,39 @@ const shieldClass = computed(() => {
 }
 
 .preference-chip {
-  align-self: flex-start;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  align-self: stretch;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.preference-toggle {
+  display: flex;
+  gap: 6px;
+}
+
+.preference-toggle button {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.preference-toggle button.active {
+  background: linear-gradient(120deg, #38bdf8, #8b5cf6);
+  color: #0b0b12;
+  border-color: transparent;
 }
 
 .shield-block {
@@ -227,7 +269,7 @@ const shieldClass = computed(() => {
   border-radius: 18px;
   display: flex;
   justify-content: space-between;
-  background: linear-gradient(120deg, rgba(45, 212, 191, 0.25), rgba(14, 165, 233, 0.15));
+  background: linear-gradient(135deg, rgba(67, 56, 202, 0.75), rgba(14, 165, 233, 0.6));
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -287,14 +329,14 @@ const shieldClass = computed(() => {
   height: 8px;
   border-radius: 999px;
   margin: 8px 0 6px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.1);
   overflow: hidden;
 }
 
 .progress__fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(120deg, #7c3aed, #06b6d4);
+  background: linear-gradient(120deg, #8b5cf6, #06b6d4);
   transition: width 0.3s ease;
 }
 
