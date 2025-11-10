@@ -12,13 +12,17 @@ const isExpanded = ref(true)
 const electronEnabled = typeof window !== 'undefined' && !!window.electronAPI
 const panelRef = ref<HTMLElement | null>(null)
 let resizeObserver: ResizeObserver | null = null
+const SETTINGS_HEIGHT = 560
 
-const resizeWindow = async () => {
+const resizeWindow = async (forcedHeight?: number) => {
   if (!electronEnabled) return
   await nextTick()
-  const el = panelRef.value
-  if (!el) return
-  const height = Math.ceil(el.getBoundingClientRect().height + 12)
+  let height = forcedHeight
+  if (!height) {
+    const el = panelRef.value
+    if (!el) return
+    height = Math.ceil(el.getBoundingClientRect().height + 12)
+  }
   await window.electronAPI.resizeWindow(Math.max(height, 56))
 }
 
@@ -34,12 +38,14 @@ const handleRefresh = async () => {
 const openSettings = () => {
   showSettings.value = true
   toggleExpand(true)
+  resizeWindow(SETTINGS_HEIGHT)
 }
 
 const handleSettingsSaved = async () => {
   showSettings.value = false
   await refreshSnapshot(true)
   startAutoRefresh()
+  await resizeWindow()
 }
 
 onMounted(async () => {
@@ -72,8 +78,14 @@ watch(
 )
 
 watch(
-  () => [isExpanded.value, state.status, state.error, state.snapshot],
-  () => resizeWindow()
+  () => [isExpanded.value, state.status, state.error, state.snapshot, showSettings.value],
+  () => {
+    if (showSettings.value) {
+      resizeWindow(SETTINGS_HEIGHT)
+    } else {
+      resizeWindow()
+    }
+  }
 )
 
 onBeforeUnmount(() => {
