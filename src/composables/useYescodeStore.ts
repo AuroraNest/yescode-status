@@ -40,6 +40,10 @@ const healthLevel = computed<'ok' | 'warn' | 'danger'>(() => {
   return 'ok'
 })
 
+const balancePreference = computed<'subscription_first' | 'payg_only'>(() => {
+  return state.snapshot?.profile.balance_preference || 'subscription_first'
+})
+
 const emitNativeStatus = () => {
   if (typeof window === 'undefined') return
   const api = window.electronAPI
@@ -113,6 +117,7 @@ export function useYescodeStore() {
     dailyLimit,
     weeklyLimit,
     healthLevel,
+    balancePreference,
     refreshSnapshot,
     startAutoRefresh,
     stopAutoRefresh,

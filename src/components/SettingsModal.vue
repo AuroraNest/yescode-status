@@ -8,7 +8,7 @@ import { useI18n } from '../i18n'
 const props = defineProps<{ visible: boolean }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 
-const { state } = useYescodeStore()
+const { state, balancePreference, updatePreference } = useYescodeStore()
 const { t } = useI18n()
 
 const form = reactive({
@@ -16,6 +16,7 @@ const form = reactive({
   launchTaskbarPanel: configService.preferences.launchTaskbarPanel,
   showFloatingBar: configService.preferences.showFloatingBar,
   compactFloatingMode: configService.preferences.compactFloatingMode,
+  preference: balancePreference.value,
   language: configService.preferences.language
 })
 
@@ -31,6 +32,7 @@ watch(
       form.launchTaskbarPanel = configService.preferences.launchTaskbarPanel
       form.showFloatingBar = configService.preferences.showFloatingBar
       form.compactFloatingMode = configService.preferences.compactFloatingMode
+      form.preference = balancePreference.value
       form.language = configService.preferences.language
       testResult.value = ''
     }
@@ -42,7 +44,7 @@ const canSave = computed(() => tokenValidation.value.valid)
 
 const close = () => emit('close')
 
-const save = () => {
+const save = async () => {
   if (!canSave.value) return
   configService.saveConfig({ apiToken: form.apiToken.trim() })
   configService.savePreferences({
@@ -51,6 +53,9 @@ const save = () => {
     compactFloatingMode: form.compactFloatingMode,
     language: form.language
   })
+  if (form.preference !== balancePreference.value) {
+    await updatePreference(form.preference)
+  }
   emit('saved')
 }
 
@@ -128,6 +133,24 @@ const testConnection = async () => {
               <option value="zh">{{ t('settings.langs.zh') }}</option>
               <option value="en">{{ t('settings.langs.en') }}</option>
             </select>
+          </div>
+
+          <div class="preference-row">
+            <label>{{ t('settings.preference') }}</label>
+            <div class="preference-toggle">
+              <label>
+                <input
+                  type="radio"
+                  value="subscription_first"
+                  v-model="form.preference"
+                />
+                {{ t('settings.preferenceOptions.subscription_first') }}
+              </label>
+              <label>
+                <input type="radio" value="payg_only" v-model="form.preference" />
+                {{ t('settings.preferenceOptions.payg_only') }}
+              </label>
+            </div>
           </div>
 
           <div class="live-cards">
@@ -277,6 +300,27 @@ small.error {
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-primary);
+}
+
+.preference-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.preference-toggle {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.preference-toggle label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
 
 .live-cards article {

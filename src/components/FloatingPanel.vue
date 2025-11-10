@@ -18,6 +18,7 @@ const props = defineProps<{
   weeklyPercentage: number
   healthLevel: 'ok' | 'warn' | 'danger'
   isExpanded: boolean
+  preference: 'subscription_first' | 'payg_only'
 }>()
 
 const emit = defineEmits<{
@@ -47,6 +48,7 @@ const totalBalance = computed(() => props.state.snapshot?.balance.total_balance 
 const subscriptionBalance = computed(() => props.state.snapshot?.balance.subscription_balance ?? 0)
 const paygBalance = computed(() => props.state.snapshot?.balance.pay_as_you_go_balance ?? 0)
 const weeklySpent = computed(() => props.state.snapshot?.balance.weekly_spent_balance ?? 0)
+const preferenceText = computed(() => t(`panel.preference.${props.preference}`))
 
 const shieldClass = computed(() => {
   switch (props.healthLevel) {
@@ -95,6 +97,10 @@ const shieldClass = computed(() => {
               <strong>${{ paygBalance.toFixed(2) }}</strong>
             </div>
           </div>
+        </div>
+
+        <div class="preference-chip">
+          {{ t('panel.preference.title') }} · {{ preferenceText }}
         </div>
 
         <div class="metrics">
@@ -205,6 +211,15 @@ const shieldClass = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+.preference-chip {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .shield-block {

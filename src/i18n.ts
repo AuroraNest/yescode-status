@@ -22,7 +22,12 @@ const messages = {
       hintWaiting: '点击下方配置 API Token 以开始同步',
       hintReady: '点击刷新或设置以掌控额度',
       cta: '配置 / 管理',
-      usage: '订阅已用'
+      usage: '订阅已用',
+      preference: {
+        title: '扣费模式',
+        subscription_first: '订阅优先',
+        payg_only: '仅按量'
+      }
     },
     taskbar: {
       subscriptionUsed: '订阅已用',
@@ -31,7 +36,14 @@ const messages = {
       payg: '按量',
       updated: '更新',
       open: '打开主面板',
-      unavailable: '暂不可用'
+      enlarge: '放大',
+      settings: '设置',
+      unavailable: '暂不可用',
+      notConfigured: '尚未配置 API Token',
+      preference: {
+        subscription_first: '订阅优先',
+        payg_only: '仅按量'
+      }
     },
     settings: {
       title: '配置 yesCode',
@@ -42,6 +54,11 @@ const messages = {
       showTaskbar: '登录后自动显示任务栏面板',
       showFloating: '启用悬浮状态条',
       compact: '使用紧凑模式（悬浮条更窄更贴边）',
+      preference: '扣费模式',
+      preferenceOptions: {
+        subscription_first: '订阅优先',
+        payg_only: '仅按量'
+      },
       plan: '订阅计划',
       daily: '每日额度',
       refresh: '刷新频率',
@@ -74,7 +91,12 @@ const messages = {
       hintWaiting: 'Paste your API Token below to start syncing',
       hintReady: 'Use refresh or settings to stay in control',
       cta: 'Configure / Manage',
-      usage: 'Used'
+      usage: 'Used',
+      preference: {
+        title: 'Billing preference',
+        subscription_first: 'Subscription first',
+        payg_only: 'Pay-as-you-go only'
+      }
     },
     taskbar: {
       subscriptionUsed: 'Used',
@@ -83,7 +105,14 @@ const messages = {
       payg: 'Pay-as-you-go',
       updated: 'Updated',
       open: 'Open panel',
-      unavailable: 'Unavailable'
+      enlarge: 'Expand',
+      settings: 'Settings',
+      unavailable: 'Unavailable',
+      notConfigured: 'API Token required',
+      preference: {
+        subscription_first: 'Sub first',
+        payg_only: 'Payg only'
+      }
     },
     settings: {
       title: 'Configure yesCode',
@@ -94,6 +123,11 @@ const messages = {
       showTaskbar: 'Show taskbar capsule after login',
       showFloating: 'Enable floating status bar',
       compact: 'Compact floating mode',
+      preference: 'Billing preference',
+      preferenceOptions: {
+        subscription_first: 'Subscription first',
+        payg_only: 'Pay-as-you-go only'
+      },
       plan: 'Plan',
       daily: 'Daily quota',
       refresh: 'Refresh cadence',
