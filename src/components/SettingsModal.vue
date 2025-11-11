@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { configService } from '../services/configService'
+import { configService, DEFAULT_HOTKEY } from '../services/configService'
 import { apiService } from '../services/apiService'
 import { useYescodeStore } from '../composables/useYescodeStore'
 import { useI18n } from '../i18n'
+import { parseHotkey } from '../shared/hotkey'
 
 const props = defineProps<{ visible: boolean }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
@@ -17,7 +18,8 @@ const form = reactive({
   showFloatingBar: configService.preferences.showFloatingBar,
   compactFloatingMode: configService.preferences.compactFloatingMode,
   preference: balancePreference.value,
-  language: configService.preferences.language
+  language: configService.preferences.language,
+  hotkey: configService.preferences.hotkey
 })
 
 const showToken = ref(false)
@@ -34,13 +36,21 @@ watch(
       form.compactFloatingMode = configService.preferences.compactFloatingMode
       form.preference = balancePreference.value
       form.language = configService.preferences.language
+      form.hotkey = configService.preferences.hotkey
       testResult.value = ''
     }
   }
 )
 
 const tokenValidation = computed(() => configService.validateApiToken(form.apiToken))
-const canSave = computed(() => tokenValidation.value.valid)
+const hotkeyValidation = computed(() => {
+  const parsed = parseHotkey(form.hotkey)
+  if (!parsed.ok) {
+    return { valid: false, message: parsed.error }
+  }
+  return { valid: true, message: parsed.display }
+})
+const canSave = computed(() => tokenValidation.value.valid && hotkeyValidation.value.valid)
 
 const close = () => emit('close')
 
@@ -51,7 +61,8 @@ const save = async () => {
     launchTaskbarPanel: form.launchTaskbarPanel,
     showFloatingBar: form.showFloatingBar,
     compactFloatingMode: form.compactFloatingMode,
-    language: form.language
+    language: form.language,
+    hotkey: form.hotkey.trim()
   })
   if (form.preference !== balancePreference.value) {
     await updatePreference(form.preference)
@@ -81,6 +92,10 @@ const testConnection = async () => {
   } finally {
     isTesting.value = false
   }
+}
+
+const restoreHotkey = () => {
+  form.hotkey = DEFAULT_HOTKEY
 }
 </script>
 
@@ -200,6 +215,27 @@ const testConnection = async () => {
               </article>
             </div>
           </section>
+          <section class="card hotkey-card">
+            <label class="field-label">{{ t('settings.hotkey') }}</label>
+            <div class="token-row">
+              <input
+                type="text"
+                v-model="form.hotkey"
+                :placeholder="t('settings.hotkeyPlaceholder')"
+                :class="{ invalid: !hotkeyValidation.valid }"
+              />
+              <button class="ghost" type="button" @click="restoreHotkey">
+                {{ t('settings.hotkeyReset') }}
+              </button>
+            </div>
+            <small :class="{ error: !hotkeyValidation.valid }">
+              {{
+                hotkeyValidation.valid
+                  ? `${t('settings.hotkeyPreview')} ${hotkeyValidation.message}`
+                  : hotkeyValidation.message
+              }}
+            </small>
+          </section>
         </div>
 
         <footer class="modal__actions">
@@ -287,6 +323,16 @@ const testConnection = async () => {
   background: var(--card-bg);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.02);
+}
+
+.hotkey-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hotkey-card .token-row {
+  margin-top: 8px;
 }
 
 .field-label {

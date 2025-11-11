@@ -29,5 +29,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
   hideWindow: () => ipcRenderer.invoke('hide-window'),
   updateTrayTooltip: (payload: { total: number; usage: number }) =>
-    ipcRenderer.invoke('update-tray-tooltip', payload)
+    ipcRenderer.invoke('update-tray-tooltip', payload),
+  setGlobalHotkey: (hotkey: string) => ipcRenderer.invoke('set-global-hotkey', hotkey)
 })
