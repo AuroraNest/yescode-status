@@ -1,8 +1,9 @@
-import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, screen } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, screen, globalShortcut } from 'electron'
 import type { Event, NativeImage } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseHotkey, type HotkeyParseResult } from '../src/shared/hotkey'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 process.env.APP_ROOT = path.join(__dirname, '..')
@@ -20,11 +21,17 @@ const CAPSULE_BOUNDS = { width: 280, height: 140 }
 const isMac = process.platform === 'darwin'
 let isQuitting = false
 let mode: WindowMode = 'capsule'
+const DEFAULT_HOTKEY = 'Ctrl+Y+E+S'
 
 let win: BrowserWindow | null = null
 let tray: Tray | null = null
 let trayBaseIcon: NativeImage | null = null
 let panelPosition = { x: 0, y: 20 }
+let registeredAccels: string[] = []
+let hotkeyProgress = 0
+let hotkeyTimer: NodeJS.Timeout | null = null
+let lastHotkeyRaw = DEFAULT_HOTKEY
+let parsedHotkey: HotkeyParseResult | null = null
 
 function resolveTrayIcon() {
   const candidates = [
@@ -90,6 +97,7 @@ function createWindow() {
     show: false,
     backgroundColor: '#00000000',
     titleBarStyle: 'hidden',
+    icon: resolveTrayIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
       nodeIntegration: false,
@@ -146,7 +154,7 @@ function showPanel() {
   if (!win) return
   mode = 'panel'
   win.setSkipTaskbar(false)
-  win.setResizable(true)
+  win.setResizable(false)
   win.setAlwaysOnTop(true, 'screen-saver')
   win.setBounds({
     width: PANEL_BOUNDS.width,
@@ -217,6 +225,87 @@ function updateTrayIcon(total: number) {
   tray.setImage(image.resize({ width: 32, height: 32 }))
 }
 
+function resetHotkeyProgress() {
+  hotkeyProgress = 0
+  if (hotkeyTimer) {
+    clearTimeout(hotkeyTimer)
+    hotkeyTimer = null
+  }
+}
+
+function scheduleHotkeyReset() {
+  if (hotkeyTimer) {
+    clearTimeout(hotkeyTimer)
+  }
+  hotkeyTimer = setTimeout(() => {
+    hotkeyProgress = 0
+    hotkeyTimer = null
+  }, 1500)
+}
+
+function handleHotkeyStage(stageIndex: number) {
+  if (!parsedHotkey) return
+  if (stageIndex === 0) {
+    hotkeyProgress = 1
+    if (parsedHotkey.sequence.length === 1) {
+      resetHotkeyProgress()
+      showCapsule()
+      return
+    }
+    scheduleHotkeyReset()
+    return
+  }
+
+  if (stageIndex === hotkeyProgress) {
+    hotkeyProgress += 1
+    if (hotkeyProgress >= parsedHotkey.sequence.length) {
+      resetHotkeyProgress()
+      showCapsule()
+      return
+    }
+    scheduleHotkeyReset()
+    return
+  }
+
+  resetHotkeyProgress()
+}
+
+function registerGlobalHotkey(raw: string) {
+  registeredAccels.forEach(accel => {
+    globalShortcut.unregister(accel)
+  })
+  registeredAccels = []
+  resetHotkeyProgress()
+
+  const next = parseHotkey(raw)
+  if (!next.ok) {
+    console.warn('无法解析快捷键：', next.error)
+    parsedHotkey = null
+    return { success: false, error: next.error }
+  }
+
+  parsedHotkey = next
+  lastHotkeyRaw = raw
+
+  next.sequence.forEach((key, index) => {
+    const accelerator = [...next.modifiers, key].join('+')
+    const registered = globalShortcut.register(accelerator, () => handleHotkeyStage(index))
+    if (registered) {
+      registeredAccels.push(accelerator)
+    } else {
+      console.warn('注册快捷键失败：', accelerator)
+    }
+  })
+
+  const success = registeredAccels.length > 0
+  if (!success) {
+    parsedHotkey = null
+    return { success: false, error: '系统未能注册该快捷键' }
+  }
+
+  return { success: true }
+}
+
 ipcMain.handle('resize-window', (_event, height: number) => {
   if (!win || mode !== 'panel') return
   const bounds = win.getBounds()
@@ -256,10 +345,19 @@ ipcMain.handle('update-tray-tooltip', (_event, payload: { total: number; usage: 
   updateTrayIcon(totalValue)
 })
 
+ipcMain.handle('set-global-hotkey', (_event, hotkey: string) => {
+  const target = typeof hotkey === 'string' && hotkey.trim() ? hotkey : DEFAULT_HOTKEY
+  return registerGlobalHotkey(target)
+})
+
 app.whenReady().then(() => {
   createWindow()
   createTray()
   showCapsule()
+  const hotkeyResult = registerGlobalHotkey(lastHotkeyRaw)
+  if (!hotkeyResult.success) {
+    console.warn('Hotkey init failed:', hotkeyResult.error)
+  }
 
   screen.on('display-metrics-changed', () => {
     if (mode === 'capsule') {
@@ -282,4 +380,5 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   isQuitting = true
+  globalShortcut.unregisterAll()
 })

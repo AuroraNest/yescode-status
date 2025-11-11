@@ -50,11 +50,9 @@ const openSettings = () => {
   resizeWindow(SETTINGS_HEIGHT)
 }
 
-const minimizeWindow = () => {
-  if (electronEnabled && window.electronAPI.minimizeWindow) {
-    window.electronAPI.minimizeWindow()
-  } else {
-    isExpanded.value = false
+const closeApp = () => {
+  if (electronEnabled && window.electronAPI.quitApp) {
+    window.electronAPI.quitApp()
   }
 }
 
@@ -68,6 +66,14 @@ const handleSettingsSaved = async () => {
 const changePreference = async (value: 'subscription_first' | 'payg_only') => {
   if (value === balancePreference.value) return
   await updatePreference(value)
+}
+
+const applyHotkey = () => {
+  if (!electronEnabled || !window.electronAPI.setGlobalHotkey) return
+  const hotkey = configService.preferences.hotkey?.trim()
+  if (hotkey) {
+    window.electronAPI.setGlobalHotkey(hotkey)
+  }
 }
 
 onMounted(async () => {
@@ -88,6 +94,7 @@ if (typeof ResizeObserver !== 'undefined') {
 }
 
 await resizeWindow()
+applyHotkey()
 })
 
 watch(
@@ -113,6 +120,13 @@ watch(
 onBeforeUnmount(() => {
   resizeObserver?.disconnect()
 })
+
+watch(
+  () => configService.preferences.hotkey,
+  () => {
+    applyHotkey()
+  }
+)
 </script>
 
 <template>
@@ -128,7 +142,7 @@ onBeforeUnmount(() => {
       @refresh="handleRefresh"
       @open-settings="openSettings"
       @toggle-expand="toggleExpand"
-      @minimize="minimizeWindow"
+      @close="closeApp"
       @change-preference="changePreference"
     />
   </div>
@@ -148,10 +162,11 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 8px;
+  padding: 12px 16px 18px;
 }
 
 .panel-wrapper {
   display: inline-flex;
+  padding: 0 6px;
 }
 </style>

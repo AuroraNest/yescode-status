@@ -28,7 +28,7 @@ const emit = defineEmits<{
   refresh: []
   openSettings: []
   toggleExpand: [force?: boolean]
-  minimize: []
+  close: []
   changePreference: [Preference]
 }>()
 
@@ -74,49 +74,49 @@ const updatedLabel = computed(() => {
 </script>
 
 <template>
-  <section class="panel" :class="[{ collapsed: !isExpanded }, `health-${healthLevel}`]" @dblclick="emit('toggleExpand')">
-    <header class="panel__top">
-      <div class="panel__headline">
-        <p class="eyebrow">{{ t('brand') }}</p>
-        <div class="title-row">
-          <div>
-            <h1>{{ headline }}</h1>
-            <p class="subtitle">{{ planName }}</p>
-          </div>
-          <span class="status-pill" :class="statusBadge.tone">{{ statusBadge.text }}</span>
-        </div>
-        <p class="updated">{{ updatedLabel }}</p>
-      </div>
+  <section class="panel" :class="{ collapsed: !isExpanded }" @dblclick="emit('toggleExpand')">
+    <div class="action-group">
+      <button class="icon ghost" title="刷新" @click.stop="emit('refresh')">⟳</button>
+      <button class="icon ghost" title="设置" @click.stop="emit('openSettings')">⚙</button>
+      <button class="icon ghost" title="折叠" @click.stop="emit('toggleExpand')">
+        {{ isExpanded ? '▾' : '▴' }}
+      </button>
+      <button class="icon ghost danger" title="关闭" @click.stop="emit('close')">×</button>
+    </div>
 
-      <div class="actions">
-        <button class="ghost" title="刷新" @click.stop="emit('refresh')">⟳</button>
-        <button class="ghost" title="设置" @click.stop="emit('openSettings')">⚙</button>
-        <button class="ghost" title="折叠/展开" @click.stop="emit('toggleExpand')">{{ isExpanded ? '▾' : '▴' }}</button>
-        <button class="ghost danger" title="最小化" @click.stop="emit('minimize')">×</button>
+    <header class="panel__top">
+      <div class="title-stack">
+        <p class="eyebrow">{{ t('brand') }}</p>
+        <h1>{{ headline }}</h1>
+        <p class="subtitle">{{ planName }}</p>
+      </div>
+      <div class="status-cluster">
+        <span class="status-pill" :class="statusBadge.tone">{{ statusBadge.text }}</span>
+        <span class="updated">{{ updatedLabel }}</span>
       </div>
     </header>
 
     <transition name="fade">
       <div v-if="isExpanded" class="panel__body">
-        <div class="primary-card frosted">
+        <div class="primary-card">
           <div class="value-block">
             <span class="label">{{ t('panel.total') }}</span>
-            <strong>${{ totalBalance.toFixed(2) }}</strong>
+            <div class="value">${{ totalBalance.toFixed(2) }}</div>
           </div>
-          <div class="balances">
-            <div>
+          <div class="balance-pills">
+            <div class="pill accent">
               <span>{{ t('panel.subscription') }}</span>
-              <p>${{ subscriptionBalance.toFixed(2) }}</p>
+              <strong>${{ subscriptionBalance.toFixed(2) }}</strong>
             </div>
-            <div>
+            <div class="pill aqua">
               <span>{{ t('panel.payg') }}</span>
-              <p>${{ paygBalance.toFixed(2) }}</p>
+              <strong>${{ paygBalance.toFixed(2) }}</strong>
             </div>
           </div>
         </div>
 
-        <div class="preference-card frosted">
-          <div class="label">{{ t('panel.preference.title') }}</div>
+        <div class="preference-card">
+          <span class="label">{{ t('panel.preference.title') }}</span>
           <div class="segmented">
             <button
               :class="{ active: preference === 'subscription_first' }"
@@ -134,7 +134,7 @@ const updatedLabel = computed(() => {
         </div>
 
         <div class="metrics-grid">
-          <article class="metric frosted">
+          <article class="metric tone-a">
             <header>
               <span>{{ t('panel.dailyUsage') }}</span>
               <strong>{{ usagePercentage.toFixed(1) }}%</strong>
@@ -145,12 +145,12 @@ const updatedLabel = computed(() => {
             <p class="hint">{{ t('panel.dailyHint') }}</p>
           </article>
 
-          <article class="metric frosted">
+          <article class="metric tone-b">
             <header>
               <span>{{ t('panel.weeklyUsage') }}</span>
               <strong>{{ weeklyPercentage.toFixed(1) }}%</strong>
             </header>
-            <div class="progress warm">
+            <div class="progress">
               <div class="progress__fill" :style="{ width: weeklyPercentage + '%' }"></div>
             </div>
             <p class="hint">{{ t('panel.weekSpent') }} ${{ weeklySpent.toFixed(2) }}</p>
@@ -158,9 +158,9 @@ const updatedLabel = computed(() => {
         </div>
 
         <footer class="cta-row">
-          <div class="helper">
+          <span class="helper">
             {{ state.status === 'idle' ? t('panel.hintWaiting') : preferenceText }}
-          </div>
+          </span>
           <button class="primary" @click="emit('openSettings')">{{ t('panel.cta') }}</button>
         </footer>
       </div>
@@ -170,149 +170,134 @@ const updatedLabel = computed(() => {
 
 <style scoped>
 .panel {
-  width: 380px;
-  padding: 18px 22px;
+  position: relative;
+  width: 360px;
+  padding: 20px;
   border-radius: 28px;
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 36px 60px rgba(3, 6, 20, 0.6);
   color: var(--text-primary);
-  backdrop-filter: blur(26px);
   -webkit-app-region: drag;
-  transition: all 0.25s ease;
+  transition: transform 0.25s ease, padding 0.2s ease;
 }
 
 .panel.collapsed {
-  padding-bottom: 10px;
+  padding-bottom: 12px;
+}
+
+.action-group {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  gap: 6px;
+  -webkit-app-region: no-drag;
 }
 
 .panel__top {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  align-items: flex-start;
+  padding-right: 80px;
+  gap: 12px;
+  -webkit-app-region: no-drag;
 }
 
-.panel__headline,
-.panel__body,
-.actions button,
-.metric,
-.primary-card,
-.preference-card,
-.cta-row {
-  -webkit-app-region: no-drag;
+.title-stack h1 {
+  margin: 6px 0 2px;
+  font-size: 24px;
+  letter-spacing: -0.5px;
 }
 
 .eyebrow {
   margin: 0;
   font-size: 11px;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--text-secondary);
 }
 
-.title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.title-row h1 {
-  margin: 6px 0 0;
-  font-size: 24px;
-  font-weight: 600;
-}
-
 .subtitle {
-  margin: 2px 0 0;
+  margin: 0;
   color: var(--text-secondary);
   font-size: 13px;
 }
 
-.updated {
-  margin: 6px 0 0;
-  font-size: 12px;
-  color: var(--text-muted);
+.status-cluster {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+  -webkit-app-region: no-drag;
 }
 
 .status-pill {
   padding: 4px 12px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .status-pill.ok {
-  background: rgba(74, 222, 128, 0.12);
-  color: #4ade80;
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
 }
-
 .status-pill.warn {
-  background: rgba(251, 191, 36, 0.12);
-  color: #facc15;
+  background: rgba(251, 191, 36, 0.16);
+  color: #fcd34d;
 }
-
 .status-pill.danger {
-  background: rgba(248, 113, 113, 0.15);
-  color: #f87171;
+  background: rgba(248, 113, 113, 0.18);
+  color: #fca5a5;
 }
-
 .status-pill.neutral {
-  background: rgba(147, 197, 253, 0.15);
-  color: #93c5fd;
+  background: rgba(147, 197, 253, 0.18);
+  color: #bfdbfe;
 }
-
 .status-pill.muted {
-  background: rgba(148, 163, 184, 0.12);
+  background: rgba(148, 163, 184, 0.15);
   color: #e2e8f0;
 }
 
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.ghost {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-primary);
-  font-size: 15px;
-  cursor: pointer;
-}
-
-.ghost.danger {
-  color: var(--danger);
+.updated {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .panel__body {
   margin-top: 18px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+  -webkit-app-region: no-drag;
 }
 
-.frosted {
-  background: var(--card-bg);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 22px;
-  padding: 16px;
-  box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.02);
+.icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.icon.danger {
+  color: var(--danger);
+  border-color: rgba(255, 107, 129, 0.4);
 }
 
 .primary-card {
+  padding: 18px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(14, 165, 233, 0.18));
+  border: 1px solid rgba(147, 197, 253, 0.25);
   display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  align-items: center;
-}
-
-.value-block {
-  min-width: 140px;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .value-block .label {
@@ -320,27 +305,42 @@ const updatedLabel = computed(() => {
   color: var(--text-secondary);
 }
 
-.value-block strong {
-  display: block;
-  font-size: 40px;
+.value-block .value {
+  font-size: 36px;
   font-weight: 600;
   letter-spacing: -0.5px;
 }
 
-.balances {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.balance-pills {
+  display: flex;
   gap: 12px;
 }
 
-.balances span {
+.pill {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pill span {
   font-size: 12px;
   color: var(--text-secondary);
 }
 
-.balances p {
-  margin: 4px 0 0;
-  font-size: 16px;
+.pill strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 17px;
+}
+
+.pill.accent {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.22), rgba(14, 165, 233, 0.2));
+}
+
+.pill.aqua {
+  background: linear-gradient(135deg, rgba(45, 212, 191, 0.18), rgba(59, 130, 246, 0.18));
 }
 
 .preference-card {
@@ -348,9 +348,13 @@ const updatedLabel = computed(() => {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 12, 24, 0.4);
 }
 
-.preference-card .label {
+.label {
   font-size: 13px;
   color: var(--text-secondary);
 }
@@ -358,16 +362,16 @@ const updatedLabel = computed(() => {
 .segmented {
   display: inline-flex;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .segmented button {
   border: none;
-  padding: 6px 14px;
   background: transparent;
-  color: var(--text-secondary);
+  padding: 6px 14px;
   font-size: 13px;
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
@@ -379,7 +383,14 @@ const updatedLabel = computed(() => {
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
+}
+
+.metric {
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 15, 26, 0.55);
 }
 
 .metric header {
@@ -393,50 +404,59 @@ const updatedLabel = computed(() => {
   font-size: 18px;
 }
 
+.metric.tone-a {
+  background: linear-gradient(150deg, rgba(14, 165, 233, 0.18), rgba(15, 23, 42, 0.7));
+}
+
+.metric.tone-b {
+  background: linear-gradient(150deg, rgba(249, 115, 22, 0.18), rgba(24, 24, 27, 0.7));
+}
+
 .progress {
-  margin-top: 12px;
   height: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.09);
+  margin-top: 10px;
   overflow: hidden;
 }
 
 .progress__fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(120deg, #8be9fd, #7dd3fc);
+  background: linear-gradient(120deg, #c084fc, #60a5fa);
 }
 
-.progress.warm .progress__fill {
-  background: linear-gradient(120deg, #fcd34d, #fb7185);
+.metric.tone-b .progress__fill {
+  background: linear-gradient(120deg, #f97316, #facc15);
 }
 
-.metric .hint {
-  margin: 10px 0 0;
+.hint {
+  margin-top: 10px;
   font-size: 12px;
   color: var(--text-secondary);
 }
 
 .cta-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .helper {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
 .primary {
   border: none;
   border-radius: 999px;
-  padding: 10px 22px;
+  padding: 8px 18px;
   background: linear-gradient(120deg, #c084fc, #60a5fa);
   color: #050505;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 10px 26px rgba(96, 165, 250, 0.35);
+  box-shadow: 0 12px 28px rgba(96, 165, 250, 0.35);
 }
 
 .fade-enter-active,

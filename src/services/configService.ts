@@ -2,6 +2,7 @@ import { reactive, ref } from 'vue'
 
 const CONFIG_KEY = 'yescode-status-config'
 const PREF_KEY = 'yescode-status-preferences'
+export const DEFAULT_HOTKEY = 'Ctrl+Y+E+S'
 
 export interface StoredConfig {
   apiToken: string
@@ -14,6 +15,7 @@ export interface UserPreferences {
   showCliTips: boolean
   compactFloatingMode: boolean
   language: 'zh' | 'en'
+  hotkey: string
 }
 
 export class ConfigService {
@@ -29,7 +31,8 @@ export class ConfigService {
     showFloatingBar: true,
     showCliTips: false,
     compactFloatingMode: false,
-    language: 'zh'
+    language: 'zh',
+    hotkey: DEFAULT_HOTKEY
   })
 
   public isConfigured = ref(false)
@@ -66,6 +69,9 @@ export class ConfigService {
       if (saved) {
         const parsed = JSON.parse(saved)
         Object.assign(this.preferences, parsed)
+      }
+      if (!this.preferences.hotkey) {
+        this.preferences.hotkey = DEFAULT_HOTKEY
       }
     } catch (error) {
       console.error('加载偏好失败:', error)
@@ -106,6 +112,7 @@ export class ConfigService {
     this.preferences.showCliTips = false
     this.preferences.compactFloatingMode = false
     this.preferences.language = 'zh'
+    this.preferences.hotkey = DEFAULT_HOTKEY
     this.isConfigured.value = false
   }
 }

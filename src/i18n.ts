@@ -20,7 +20,7 @@ const messages = {
       dailyHint: '已用当日额度',
       weeklyHint: '本周支出',
       hintWaiting: '点击下方配置 API Token 以开始同步',
-      hintReady: '点击刷新或设置以掌控额度',
+      hintReady: '点击刷新',
       cta: '配置 / 管理',
       usage: '订阅已用',
       preference: {
@@ -69,7 +69,11 @@ const messages = {
       cancel: '取消',
       save: '保存',
       language: '语言',
-      langs: { zh: '中文', en: 'English' }
+      langs: { zh: '中文', en: 'English' },
+      hotkey: '全局快捷键',
+      hotkeyPlaceholder: 'Ctrl+Y+E+S',
+      hotkeyReset: '恢复默认',
+      hotkeyPreview: '当前识别：'
     }
   },
   en: {
@@ -139,7 +143,11 @@ const messages = {
       cancel: 'Cancel',
       save: 'Save',
       language: 'Language',
-      langs: { zh: '中文', en: 'English' }
+      langs: { zh: '中文', en: 'English' },
+      hotkey: 'Global hotkey',
+      hotkeyPlaceholder: 'Ctrl+Y+E+S',
+      hotkeyReset: 'Reset default',
+      hotkeyPreview: 'Detected as'
     }
   }
 } as const
