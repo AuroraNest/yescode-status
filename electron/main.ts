@@ -32,6 +32,7 @@ let hotkeyProgress = 0
 let hotkeyTimer: NodeJS.Timeout | null = null
 let lastHotkeyRaw = DEFAULT_HOTKEY
 let parsedHotkey: HotkeyParseResult | null = null
+let shouldShowCapsuleOnRestore = false
 
 function resolveTrayIcon() {
   const lookupRoots = [
@@ -119,6 +120,17 @@ function createWindow() {
     }
   })
 
+  win.on('minimize', () => {
+    shouldShowCapsuleOnRestore = true
+  })
+
+  win.on('restore', () => {
+    if (shouldShowCapsuleOnRestore) {
+      showCapsule()
+    }
+    shouldShowCapsuleOnRestore = false
+  })
+
   win.on('moved', () => {
     if (mode === 'panel' && win) {
       const bounds = win.getBounds()
@@ -139,6 +151,7 @@ function createWindow() {
 }
 
 function showCapsule() {
+  shouldShowCapsuleOnRestore = false
   if (!win) return
   mode = 'capsule'
   win.setSkipTaskbar(true)
@@ -152,6 +165,7 @@ function showCapsule() {
 }
 
 function showPanel() {
+  shouldShowCapsuleOnRestore = false
   if (!win) return
   mode = 'panel'
   win.setSkipTaskbar(false)
