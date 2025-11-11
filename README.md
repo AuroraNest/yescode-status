@@ -42,7 +42,7 @@
 
 1. **克隆项目**
 ```bash
-git clone https://github.com/yourusername/my-floating-bar.git
+git clone https://github.com/AuroraNest/yescode-status.git
 cd my-floating-bar
 ```
 
@@ -189,7 +189,7 @@ A: 展开悬浮栏 → 点击设置 → 点击"🗑️ 重置配置"
 
 ## 🙏 致谢
 
-- [yesCode](https://co.yes.vg/register?ref=SYSAJQK0/) - 提供 Claude API 服务
+- [yesCode](https://co.yes.vg/register?ref=sysadmin/) - 提供 Claude API、Codex API、Kimi API、GLM API 服务
 - [Electron](https://electronjs.org/) - 跨平台桌面应用框架
 - [Vue.js](https://vuejs.org/) - 渐进式 JavaScript 框架
 
@@ -199,8 +199,8 @@ A: 展开悬浮栏 → 点击设置 → 点击"🗑️ 重置配置"
 
 ## 📞 联系方式
 
-- 提交 Issue: [GitHub Issues](https://github.com/Yangegea/my-floating-bar/issues)
-- 邮箱: yangegehaoshuaia@gmail.com
+- 提交 Issue: [GitHub Issues](https://github.com/AuroraNest/yescode-status.git/issues)
+- 邮箱: eternalflameaurorali@gmail.com
 
 ---
 
