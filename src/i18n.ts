@@ -80,8 +80,8 @@ const messages = {
       },
       collapsed: {
         title: '折叠视图指标',
-        hint: '最多选择 3 个折叠卡片显示的指标',
-        limit: '最多选择 3 个指标'
+        hint: '最多选择 4 个折叠卡片显示的指标',
+        limit: '最多选择 4 个指标'
       },
       plan: '订阅计划',
       daily: '每日额度',
@@ -177,8 +177,8 @@ const messages = {
       },
       collapsed: {
         title: 'Collapsed view metrics',
-        hint: 'Choose up to 3 indicators to show when the panel is collapsed',
-        limit: 'Select up to 3 indicators'
+        hint: 'Choose up to 4 indicators to show when the panel is collapsed',
+        limit: 'Select up to 4 indicators'
       },
       plan: 'Plan',
       daily: 'Daily quota',

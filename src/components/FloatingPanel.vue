@@ -82,8 +82,8 @@ const statusBadge = computed<{ text: string; tone: BadgeTone }>(() => {
 })
 
 const updatedLabel = computed(() => {
-  if (!props.state.lastUpdated) return t('status.waiting')
-  return `${t('status.updated')} ${props.state.lastUpdated.toLocaleTimeString()}`
+  if (!props.state.lastUpdated) return t('panel.badge.waiting')
+  return props.state.lastUpdated.toLocaleTimeString()
 })
 
 const collapsedSelection = computed<CollapsedMetric[]>(() => {
@@ -159,7 +159,12 @@ const collapsedCards = computed<CollapsedCard[]>(() => {
             <h1>{{ headline }}</h1>
             <p class="subtitle">{{ planName }}</p>
           </div>
+        </div>
+        <div class="status-line">
           <span class="status-pill" :class="statusBadge.tone">{{ statusBadge.text }}</span>
+          <span class="timestamp">
+            {{ t('status.updated') }} {{ updatedLabel }}
+          </span>
         </div>
       </div>
 
@@ -172,7 +177,9 @@ const collapsedCards = computed<CollapsedCard[]>(() => {
         <button class="icon ghost danger" title="关闭" @click.stop="emit('close')">×</button>
       </div>
     </header>
-    <p class="updated">{{ updatedLabel }}</p>
+    <p class="updated-mobile">
+      {{ t('status.updated') }} {{ updatedLabel }}
+    </p>
 
     <transition name="fade">
       <div v-if="isExpanded" class="panel__body">
@@ -342,7 +349,21 @@ const collapsedCards = computed<CollapsedCard[]>(() => {
   color: #e2e8f0;
 }
 
-.updated {
+.updated-mobile {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 6px 0 0;
+  display: none;
+}
+
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.timestamp {
   font-size: 12px;
   color: var(--text-muted);
 }
@@ -356,33 +377,43 @@ const collapsedCards = computed<CollapsedCard[]>(() => {
 }
 
 .panel__collapsed {
-  margin-top: 10px;
+  margin-top: 12px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 8px;
   -webkit-app-region: no-drag;
 }
 
 .mini-card {
   padding: 8px 10px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.12), rgba(20, 20, 30, 0.7));
+  border: 1px solid rgba(255, 255, 255, 0.08);
   text-align: center;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.25);
 }
 
 .mini-card span {
   display: block;
   font-size: 11px;
   color: var(--text-secondary);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
 .mini-card strong {
   display: block;
-  margin-top: 4px;
-  font-size: 16px;
+  margin-top: 2px;
+  font-size: 17px;
+}
+
+@media (max-width: 420px) {
+  .status-line {
+    display: none;
+  }
+  .updated-mobile {
+    display: block;
+  }
 }
 
 .icon {
@@ -580,3 +611,11 @@ const collapsedCards = computed<CollapsedCard[]>(() => {
   opacity: 0;
 }
 </style>
+.mini-card {
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.08), rgba(15, 15, 22, 0.7));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.04);
+  text-align: center;
+}
