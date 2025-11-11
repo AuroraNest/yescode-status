@@ -69,6 +69,7 @@ const messages = {
       showTaskbar: '登录后自动显示任务栏面板',
       showFloating: '启用悬浮状态条',
       compact: '使用紧凑模式（悬浮条更窄更贴边）',
+      compactHint: '悬浮条更靠边、体积更小',
       preference: '扣费模式',
       preferenceOptions: {
         subscription_first: '订阅优先',
@@ -157,6 +158,7 @@ const messages = {
       showTaskbar: 'Show taskbar capsule after login',
       showFloating: 'Enable floating status bar',
       compact: 'Compact floating mode',
+      compactHint: 'Narrow floating bar that hugs screen edges',
       preference: 'Billing preference',
       preferenceOptions: {
         subscription_first: 'Subscription first',
