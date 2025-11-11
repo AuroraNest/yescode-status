@@ -221,20 +221,16 @@ function updateOverlayIcon(total: number) {
   win.setOverlayIcon(image.resize({ width: 26, height: 26 }), `余额 $${label}`)
 }
 
-function updateTrayIcon(total: number) {
+function updateTrayIcon(usage: number) {
   if (!tray) return
   if (!trayBaseIcon) {
     trayBaseIcon = resolveTrayIcon()
   }
-  if (total <= 0) {
-    tray.setImage(trayBaseIcon!)
-    return
-  }
-  const label = Math.max(0, Math.min(999, Math.round(total))).toString()
+  const percent = Number.isFinite(usage) ? Math.max(0, Math.min(999, Math.round(usage))) : 0
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
       <rect width="64" height="64" rx="12" ry="12" fill="#0b1121"/>
-      <text x="32" y="38" font-size="30" font-weight="700" text-anchor="middle" fill="#67e8f9">${label}</text>
+      <text x="32" y="40" font-size="26" font-weight="700" text-anchor="middle" fill="#facc15">${percent}%</text>
     </svg>`
   const image = nativeImage.createFromDataURL(`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`)
   tray.setImage(image.resize({ width: 32, height: 32 }))
@@ -362,7 +358,7 @@ ipcMain.handle('update-tray-tooltip', (_event, payload: { total: number; usage: 
     tray.setTitle(`$${totalString}`)
   }
   updateOverlayIcon(totalValue)
-  updateTrayIcon(totalValue)
+  updateTrayIcon(usageValue)
 })
 
 ipcMain.handle('set-global-hotkey', (_event, hotkey: string) => {
