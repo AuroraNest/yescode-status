@@ -52,6 +52,7 @@ const totalBalance = computed(() => props.state.snapshot?.balance.total_balance 
 const subscriptionBalance = computed(() => props.state.snapshot?.balance.subscription_balance ?? 0)
 const paygBalance = computed(() => props.state.snapshot?.balance.pay_as_you_go_balance ?? 0)
 const weeklySpent = computed(() => props.state.snapshot?.balance.weekly_spent_balance ?? 0)
+const weeklyLimit = computed(() => props.state.snapshot?.balance.weekly_limit ?? 0)
 const preferenceText = computed(() => t(`panel.preference.${props.preference}`))
 
 const statusBadge = computed<{ text: string; tone: BadgeTone }>(() => {
@@ -174,6 +175,22 @@ const updatedLabel = computed(() => {
         </footer>
       </div>
     </transition>
+    <transition name="fade">
+      <div v-if="!isExpanded" class="panel__collapsed">
+        <div class="mini-card">
+          <span>{{ t('panel.collapsed.usage') }}</span>
+          <strong>{{ usagePercentage.toFixed(0) }}%</strong>
+        </div>
+        <div class="mini-card">
+          <span>{{ t('panel.collapsed.remaining') }}</span>
+          <strong>${{ subscriptionBalance.toFixed(2) }}</strong>
+        </div>
+        <div class="mini-card">
+          <span>{{ t('panel.collapsed.weekly') }}</span>
+          <strong>{{ weeklyLimit > 0 ? `$${weeklyLimit.toFixed(0)}` : '—' }}</strong>
+        </div>
+      </div>
+    </transition>
   </section>
 </template>
 
@@ -276,6 +293,36 @@ const updatedLabel = computed(() => {
   flex-direction: column;
   gap: 14px;
   -webkit-app-region: no-drag;
+}
+
+.panel__collapsed {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  -webkit-app-region: no-drag;
+}
+
+.mini-card {
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: center;
+}
+
+.mini-card span {
+  display: block;
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mini-card strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 16px;
 }
 
 .icon {
