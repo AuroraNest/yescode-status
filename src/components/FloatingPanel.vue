@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import type { StatusSnapshot } from '../services/apiService'
 import { useI18n } from '../i18n'
+import { configService, DEFAULT_COLLAPSED_METRICS, type CollapsedMetric } from '../services/configService'
 
 interface PanelState {
   status: 'idle' | 'loading' | 'ready' | 'error'
@@ -53,6 +54,11 @@ const subscriptionBalance = computed(() => props.state.snapshot?.balance.subscri
 const paygBalance = computed(() => props.state.snapshot?.balance.pay_as_you_go_balance ?? 0)
 const weeklySpent = computed(() => props.state.snapshot?.balance.weekly_spent_balance ?? 0)
 const weeklyLimit = computed(() => props.state.snapshot?.balance.weekly_limit ?? 0)
+const weeklyRemaining = computed(() => {
+  const limit = weeklyLimit.value
+  if (!limit) return 0
+  return Math.max(0, limit - weeklySpent.value)
+})
 const preferenceText = computed(() => t(`panel.preference.${props.preference}`))
 
 const statusBadge = computed<{ text: string; tone: BadgeTone }>(() => {
@@ -78,6 +84,68 @@ const statusBadge = computed<{ text: string; tone: BadgeTone }>(() => {
 const updatedLabel = computed(() => {
   if (!props.state.lastUpdated) return t('status.waiting')
   return `${t('status.updated')} ${props.state.lastUpdated.toLocaleTimeString()}`
+})
+
+const collapsedSelection = computed<CollapsedMetric[]>(() => {
+  const selected = configService.preferences.collapsedMetrics
+  if (Array.isArray(selected) && selected.length) {
+    return selected.slice(0, 3)
+  }
+  return DEFAULT_COLLAPSED_METRICS
+})
+
+const formatCurrency = (value: number, digits = 2) => `$${value.toFixed(digits)}`
+
+type CollapsedCard = { key: CollapsedMetric; label: string; value: string }
+const collapsedCards = computed<CollapsedCard[]>(() => {
+  const cards: CollapsedCard[] = []
+  collapsedSelection.value.forEach(metric => {
+    switch (metric) {
+      case 'usage':
+        cards.push({
+          key: metric,
+          label: t('panel.collapsedOptions.usage'),
+          value: `${props.usagePercentage.toFixed(0)}%`
+        })
+        break
+      case 'subscription':
+        cards.push({
+          key: metric,
+          label: t('panel.collapsedOptions.subscription'),
+          value: formatCurrency(subscriptionBalance.value)
+        })
+        break
+      case 'payg':
+        cards.push({
+          key: metric,
+          label: t('panel.collapsedOptions.payg'),
+          value: formatCurrency(paygBalance.value)
+        })
+        break
+      case 'weekly_limit':
+        cards.push({
+          key: metric,
+          label: t('panel.collapsedOptions.weekly_limit'),
+          value: weeklyLimit.value ? formatCurrency(weeklyLimit.value, 0) : '—'
+        })
+        break
+      case 'weekly_remaining':
+        cards.push({
+          key: metric,
+          label: t('panel.collapsedOptions.weekly_remaining'),
+          value: weeklyLimit.value ? formatCurrency(weeklyRemaining.value, 0) : '—'
+        })
+        break
+      case 'total':
+        cards.push({
+          key: metric,
+          label: t('panel.collapsedOptions.total'),
+          value: formatCurrency(totalBalance.value)
+        })
+        break
+    }
+  })
+  return cards
 })
 </script>
 
@@ -177,17 +245,9 @@ const updatedLabel = computed(() => {
     </transition>
     <transition name="fade">
       <div v-if="!isExpanded" class="panel__collapsed">
-        <div class="mini-card">
-          <span>{{ t('panel.collapsed.usage') }}</span>
-          <strong>{{ usagePercentage.toFixed(0) }}%</strong>
-        </div>
-        <div class="mini-card">
-          <span>{{ t('panel.collapsed.remaining') }}</span>
-          <strong>${{ subscriptionBalance.toFixed(2) }}</strong>
-        </div>
-        <div class="mini-card">
-          <span>{{ t('panel.collapsed.weekly') }}</span>
-          <strong>{{ weeklyLimit > 0 ? `$${weeklyLimit.toFixed(0)}` : '—' }}</strong>
+        <div class="mini-card" v-for="card in collapsedCards" :key="card.key">
+          <span>{{ card.label }}</span>
+          <strong>{{ card.value }}</strong>
         </div>
       </div>
     </transition>
@@ -298,7 +358,7 @@ const updatedLabel = computed(() => {
 .panel__collapsed {
   margin-top: 10px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   gap: 10px;
   -webkit-app-region: no-drag;
 }
@@ -313,10 +373,10 @@ const updatedLabel = computed(() => {
 
 .mini-card span {
   display: block;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-secondary);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .mini-card strong {

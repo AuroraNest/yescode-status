@@ -3,6 +3,9 @@ import { reactive, ref } from 'vue'
 const CONFIG_KEY = 'yescode-status-config'
 const PREF_KEY = 'yescode-status-preferences'
 export const DEFAULT_HOTKEY = 'Ctrl+Y+E+S'
+export type CollapsedMetric = 'usage' | 'subscription' | 'payg' | 'weekly_limit' | 'weekly_remaining' | 'total'
+export const DEFAULT_COLLAPSED_METRICS: CollapsedMetric[] = ['usage', 'subscription', 'weekly_limit']
+const COLLAPSED_POOL: CollapsedMetric[] = ['usage', 'subscription', 'payg', 'weekly_limit', 'weekly_remaining', 'total']
 
 export interface StoredConfig {
   apiToken: string
@@ -16,6 +19,7 @@ export interface UserPreferences {
   compactFloatingMode: boolean
   language: 'zh' | 'en'
   hotkey: string
+  collapsedMetrics: CollapsedMetric[]
 }
 
 export class ConfigService {
@@ -32,7 +36,8 @@ export class ConfigService {
     showCliTips: false,
     compactFloatingMode: false,
     language: 'zh',
-    hotkey: DEFAULT_HOTKEY
+    hotkey: DEFAULT_HOTKEY,
+    collapsedMetrics: [...DEFAULT_COLLAPSED_METRICS]
   })
 
   public isConfigured = ref(false)
@@ -73,6 +78,7 @@ export class ConfigService {
       if (!this.preferences.hotkey) {
         this.preferences.hotkey = DEFAULT_HOTKEY
       }
+      this.preferences.collapsedMetrics = this.sanitizeCollapsedMetrics(this.preferences.collapsedMetrics)
     } catch (error) {
       console.error('加载偏好失败:', error)
     }
@@ -99,6 +105,7 @@ export class ConfigService {
 
   public savePreferences(newPrefs: Partial<UserPreferences>) {
     Object.assign(this.preferences, newPrefs)
+    this.preferences.collapsedMetrics = this.sanitizeCollapsedMetrics(this.preferences.collapsedMetrics)
     localStorage.setItem(PREF_KEY, JSON.stringify(this.preferences))
   }
 
@@ -113,7 +120,21 @@ export class ConfigService {
     this.preferences.compactFloatingMode = false
     this.preferences.language = 'zh'
     this.preferences.hotkey = DEFAULT_HOTKEY
+    this.preferences.collapsedMetrics = [...DEFAULT_COLLAPSED_METRICS]
     this.isConfigured.value = false
+  }
+
+  private sanitizeCollapsedMetrics(input?: unknown): CollapsedMetric[] {
+    if (!Array.isArray(input)) {
+      return [...DEFAULT_COLLAPSED_METRICS]
+    }
+    const filtered = input
+      .map(item => (COLLAPSED_POOL.includes(item as CollapsedMetric) ? (item as CollapsedMetric) : null))
+      .filter((item): item is CollapsedMetric => item !== null)
+    if (!filtered.length) {
+      return [...DEFAULT_COLLAPSED_METRICS]
+    }
+    return filtered.slice(0, 3)
   }
 }
 
