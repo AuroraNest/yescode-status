@@ -258,6 +258,15 @@ const collapsedCards = computed<CollapsedCard[]>(() => {
         </div>
       </div>
     </transition>
+    <p class="author-link">
+      <a
+        href="https://github.com/AuroraNest/yescode-status?tab=readme-ov-file"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        by Aurora
+      </a>
+    </p>
   </section>
 </template>
 
@@ -404,6 +413,24 @@ const collapsedCards = computed<CollapsedCard[]>(() => {
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 8px;
   -webkit-app-region: no-drag;
+}
+
+.author-link {
+  margin: 10px 0 0;
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.author-link a {
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.8;
+}
+
+.author-link a:hover {
+  text-decoration: underline;
+  opacity: 1;
 }
 
 .mini-card {
