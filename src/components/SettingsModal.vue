@@ -102,8 +102,8 @@ const restoreHotkey = () => {
 <template>
   <teleport to="body">
     <div v-if="visible" class="modal-overlay" @click.self="close">
-      <div class="modal glass">
-        <header class="modal__header">
+      <div class="modal-sheet">
+        <header class="sheet-header">
           <div>
             <p class="eyebrow">{{ t('brand') }}</p>
             <h2>{{ t('settings.title') }}</h2>
@@ -112,8 +112,8 @@ const restoreHotkey = () => {
           <button class="close-btn" @click="close">×</button>
         </header>
 
-        <div class="modal__grid">
-          <section class="card form-card">
+        <div class="sheet-scroll">
+          <section class="card">
             <label class="field-label">{{ t('settings.token') }}</label>
             <div class="token-row">
               <input
@@ -126,96 +126,72 @@ const restoreHotkey = () => {
                 {{ showToken ? t('settings.toggle.hide') : t('settings.toggle.show') }}
               </button>
             </div>
-            <small v-if="!tokenValidation.valid" class="error">{{ tokenValidation.message }}</small>
-            <small v-else>从 yesCode 控制台复制以 cr_ 开头的密钥</small>
+            <small :class="{ error: !tokenValidation.valid }">
+              {{ tokenValidation.valid ? 'cr_ 开头的密钥将安全保存在本地' : tokenValidation.message }}
+            </small>
+          </section>
 
-            <div class="switch-group">
-              <label class="switch-row">
-                <span>{{ t('settings.showTaskbar') }}</span>
-                <span class="switch">
-                  <input type="checkbox" v-model="form.launchTaskbarPanel" />
-                  <span class="slider"></span>
-                </span>
-              </label>
-              <label class="switch-row">
-                <span>{{ t('settings.showFloating') }}</span>
-                <span class="switch">
-                  <input type="checkbox" v-model="form.showFloatingBar" />
-                  <span class="slider"></span>
-                </span>
-              </label>
-              <label class="switch-row">
-                <span>{{ t('settings.compact') }}</span>
-                <span class="switch">
-                  <input type="checkbox" v-model="form.compactFloatingMode" />
-                  <span class="slider"></span>
-                </span>
-              </label>
-            </div>
-
-            <div class="inline-fields">
+          <section class="card stack">
+            <div class="switch-row">
               <div>
-                <label class="field-label">{{ t('settings.language') }}</label>
-                <div class="select-shell">
-                  <select v-model="form.language">
-                    <option value="zh">{{ t('settings.langs.zh') }}</option>
-                    <option value="en">{{ t('settings.langs.en') }}</option>
-                  </select>
-                </div>
+                <strong>{{ t('settings.compact') }}</strong>
+                <p>{{ t('settings.compactHint') ?? '' }}</p>
               </div>
+              <span class="switch">
+                <input type="checkbox" v-model="form.compactFloatingMode" />
+                <span class="slider"></span>
+              </span>
+            </div>
+            <div class="switch-row">
               <div>
-                <label class="field-label">{{ t('settings.preference') }}</label>
-                <div class="segmented">
-                  <button
-                    :class="{ active: form.preference === 'subscription_first' }"
-                    @click="form.preference = 'subscription_first'"
-                  >
-                    {{ t('settings.preferenceOptions.subscription_first') }}
-                  </button>
-                  <button
-                    :class="{ active: form.preference === 'payg_only' }"
-                    @click="form.preference = 'payg_only'"
-                  >
-                    {{ t('settings.preferenceOptions.payg_only') }}
-                  </button>
-                </div>
+                <strong>{{ t('settings.showFloating') }}</strong>
+              </div>
+              <span class="switch">
+                <input type="checkbox" v-model="form.showFloatingBar" />
+                <span class="slider"></span>
+              </span>
+            </div>
+            <div class="switch-row">
+              <div>
+                <strong>{{ t('settings.showTaskbar') }}</strong>
+              </div>
+              <span class="switch">
+                <input type="checkbox" v-model="form.launchTaskbarPanel" />
+                <span class="slider"></span>
+              </span>
+            </div>
+          </section>
+
+          <section class="card grid-two">
+            <div>
+              <label class="field-label">{{ t('settings.language') }}</label>
+              <div class="select-shell">
+                <select v-model="form.language">
+                  <option value="zh">{{ t('settings.langs.zh') }}</option>
+                  <option value="en">{{ t('settings.langs.en') }}</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="field-label">{{ t('settings.preference') }}</label>
+              <div class="segmented">
+                <button
+                  :class="{ active: form.preference === 'subscription_first' }"
+                  @click="form.preference = 'subscription_first'"
+                >
+                  {{ t('settings.preferenceOptions.subscription_first') }}
+                </button>
+                <button
+                  :class="{ active: form.preference === 'payg_only' }"
+                  @click="form.preference = 'payg_only'"
+                >
+                  {{ t('settings.preferenceOptions.payg_only') }}
+                </button>
               </div>
             </div>
           </section>
 
-          <section class="card live-card">
-            <div class="live-header">
-              <span>{{ t('settings.plan') }}</span>
-              <strong>{{ state.snapshot?.profile.subscription_plan?.name ?? '待连接' }}</strong>
-            </div>
-            <div class="live-grid">
-              <article>
-                <span>{{ t('panel.total') }}</span>
-                <p>${{ Number(state.snapshot?.balance?.total_balance ?? 0).toFixed(2) }}</p>
-              </article>
-              <article>
-                <span>{{ t('settings.daily') }}</span>
-                <p>{{ state.snapshot?.profile.subscription_plan?.daily_balance ?? '—' }}</p>
-              </article>
-              <article>
-                <span>{{ t('panel.subscription') }}</span>
-                <p>${{ Number(state.snapshot?.balance?.subscription_balance ?? 0).toFixed(2) }}</p>
-              </article>
-              <article>
-                <span>{{ t('panel.payg') }}</span>
-                <p>${{ Number(state.snapshot?.balance?.pay_as_you_go_balance ?? 0).toFixed(2) }}</p>
-              </article>
-              <article>
-                <span>{{ t('panel.weeklyUsage') }}</span>
-                <p>${{ Number(state.snapshot?.balance?.weekly_spent_balance ?? 0).toFixed(2) }}</p>
-              </article>
-              <article>
-                <span>{{ t('settings.refresh') }}</span>
-                <p>60s</p>
-              </article>
-            </div>
-          </section>
-          <section class="card hotkey-card">
+          <section class="card stack">
             <label class="field-label">{{ t('settings.hotkey') }}</label>
             <div class="token-row">
               <input
@@ -236,16 +212,47 @@ const restoreHotkey = () => {
               }}
             </small>
           </section>
+
+          <section class="card stats">
+            <div class="stats-header">
+              <span>{{ t('settings.plan') }}</span>
+              <strong>{{ state.snapshot?.profile.subscription_plan?.name ?? '—' }}</strong>
+            </div>
+            <div class="stats-grid">
+              <article>
+                <span>{{ t('panel.total') }}</span>
+                <strong>${{ Number(state.snapshot?.balance?.total_balance ?? 0).toFixed(2) }}</strong>
+              </article>
+              <article>
+                <span>{{ t('settings.daily') }}</span>
+                <strong>{{ state.snapshot?.profile.subscription_plan?.daily_balance ?? '—' }}</strong>
+              </article>
+              <article>
+                <span>{{ t('panel.subscription') }}</span>
+                <strong>${{ Number(state.snapshot?.balance?.subscription_balance ?? 0).toFixed(2) }}</strong>
+              </article>
+              <article>
+                <span>{{ t('panel.payg') }}</span>
+                <strong>${{ Number(state.snapshot?.balance?.pay_as_you_go_balance ?? 0).toFixed(2) }}</strong>
+              </article>
+              <article>
+                <span>{{ t('panel.weeklyUsage') }}</span>
+                <strong>${{ Number(state.snapshot?.balance?.weekly_spent_balance ?? 0).toFixed(2) }}</strong>
+              </article>
+              <article>
+                <span>{{ t('settings.refresh') }}</span>
+                <strong>60s</strong>
+              </article>
+            </div>
+          </section>
         </div>
 
-        <footer class="modal__actions">
-          <div class="left">
-            <button class="ghost" type="button" @click="testConnection" :disabled="isTesting">
-              {{ isTesting ? t('settings.testing') : t('settings.test') }}
-            </button>
-            <span class="test-result">{{ testResult }}</span>
-          </div>
-          <div class="right">
+        <footer class="sheet-footer">
+          <button class="ghost" type="button" @click="testConnection" :disabled="isTesting">
+            {{ isTesting ? t('settings.testing') : t('settings.test') }}
+          </button>
+          <span class="test-result">{{ testResult }}</span>
+          <div class="footer-actions">
             <button class="ghost danger" type="button" @click="resetAll">{{ t('settings.reset') }}</button>
             <button class="ghost" type="button" @click="close">{{ t('settings.cancel') }}</button>
             <button class="primary" type="button" :disabled="!canSave" @click="save">{{ t('settings.save') }}</button>
