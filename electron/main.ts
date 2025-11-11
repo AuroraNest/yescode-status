@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, screen } from 'electron'
+import type { Event, NativeImage } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -22,7 +23,7 @@ let mode: WindowMode = 'capsule'
 
 let win: BrowserWindow | null = null
 let tray: Tray | null = null
-let trayBaseIcon: nativeImage | null = null
+let trayBaseIcon: NativeImage | null = null
 let panelPosition = { x: 0, y: 20 }
 
 function resolveTrayIcon() {
@@ -97,14 +98,14 @@ function createWindow() {
     }
   })
 
-  win.on('close', (event) => {
+  win.on('close', (event: Event) => {
     if (!isQuitting) {
       event.preventDefault()
       showCapsule()
     }
   })
 
-  win.on('minimize', (event) => {
+  win.on('minimize', (event: Event) => {
     event.preventDefault()
     showCapsule()
   })

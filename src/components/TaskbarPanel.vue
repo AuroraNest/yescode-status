@@ -10,6 +10,8 @@ interface PanelState {
   lastUpdated: Date | null
 }
 
+type Preference = 'subscription_first' | 'payg_only'
+
 const { t } = useI18n()
 
 const props = defineProps<{
@@ -17,10 +19,15 @@ const props = defineProps<{
   usagePercentage: number
   healthLevel: 'ok' | 'warn' | 'danger'
   configured: boolean
-  preference: 'subscription_first' | 'payg_only'
+  preference: Preference
 }>()
 
-const emit = defineEmits<{ openSettings: []; expand: []; hide: []; changePreference: ['subscription_first' | 'payg_only'] }>()
+const emit = defineEmits<{
+  openSettings: []
+  expand: []
+  hide: []
+  changePreference: [Preference]
+}>()
 
 const planName = computed(() => {
   if (!props.configured) return t('taskbar.notConfigured')
@@ -28,6 +35,7 @@ const planName = computed(() => {
   if (!props.state.snapshot) return t('status.waiting')
   return props.state.snapshot.profile.subscription_plan?.name ?? 'yesCode'
 })
+
 const total = computed(() => props.state.snapshot?.balance.total_balance ?? 0)
 const subscription = computed(() => props.state.snapshot?.balance.subscription_balance ?? 0)
 const payg = computed(() => props.state.snapshot?.balance.pay_as_you_go_balance ?? 0)
@@ -37,30 +45,35 @@ const updatedAt = computed(() =>
 </script>
 
 <template>
-  <div class="chip" :class="healthLevel">
+  <div class="capsule frosted" :class="[`health-${healthLevel}`, { inactive: !configured }]">
     <template v-if="configured">
-      <header>
-        <div class="plan">{{ planName }}</div>
-        <div class="usage">
+      <header class="capsule__top">
+        <div>
+          <p class="eyebrow">{{ t('brand') }}</p>
+          <h2>{{ planName }}</h2>
+          <p class="total">${{ total.toFixed(2) }}</p>
+        </div>
+        <div class="usage-orb">
+          <div class="usage-orb__ring" :style="{ '--usage': usagePercentage + '%' }"></div>
           <strong>{{ usagePercentage.toFixed(0) }}%</strong>
-          <span>{{ t('taskbar.subscriptionUsed') }}</span>
+          <small>{{ t('taskbar.subscriptionUsed') }}</small>
         </div>
       </header>
 
-      <div class="totals">
-        <div class="value">
-          <span class="label">{{ t('taskbar.total') }}</span>
-          <strong>${{ total.toFixed(2) }}</strong>
+      <section class="stacked">
+        <div>
+          <span>{{ t('taskbar.subscription') }}</span>
+          <strong>${{ subscription.toFixed(2) }}</strong>
         </div>
-        <div class="value stacked">
-          <span>{{ t('taskbar.subscription') }} ${{ subscription.toFixed(2) }}</span>
-          <span>{{ t('taskbar.payg') }} ${{ payg.toFixed(2) }}</span>
+        <div>
+          <span>{{ t('taskbar.payg') }}</span>
+          <strong>${{ payg.toFixed(2) }}</strong>
         </div>
-      </div>
+      </section>
 
-      <div class="preference">
+      <section class="preference">
         <span>{{ t(`taskbar.preference.${preference}`) }}</span>
-        <div class="preference-toggle">
+        <div class="segmented">
           <button
             :class="{ active: preference === 'subscription_first' }"
             @click.stop="emit('changePreference', 'subscription_first')"
@@ -74,103 +87,158 @@ const updatedAt = computed(() =>
             {{ t('panel.preference.payg_only') }}
           </button>
         </div>
-      </div>
+      </section>
 
       <footer>
-        <span>{{ t('taskbar.updated') }} {{ updatedAt }}</span>
+        <div class="timestamp">
+          {{ t('taskbar.updated') }} {{ updatedAt }}
+        </div>
         <div class="actions">
-          <button @click.stop="emit('expand')">{{ t('taskbar.enlarge') }}</button>
-          <button @click.stop="emit('openSettings')">{{ t('taskbar.settings') }}</button>
-          <button @click.stop="$emit('hide')">{{ t('taskbar.hide') }}</button>
+          <button class="ghost" @click.stop="emit('expand')">{{ t('taskbar.enlarge') }}</button>
+          <button class="ghost" @click.stop="emit('openSettings')">{{ t('taskbar.settings') }}</button>
+          <button class="ghost danger" @click.stop="emit('hide')">{{ t('taskbar.hide') }}</button>
         </div>
       </footer>
     </template>
+
     <template v-else>
       <div class="empty">
         <p>{{ t('taskbar.notConfigured') }}</p>
-        <button @click.stop="emit('openSettings')">{{ t('taskbar.settings') }}</button>
+        <button class="primary" @click.stop="emit('openSettings')">{{ t('taskbar.settings') }}</button>
       </div>
     </template>
   </div>
 </template>
 
 <style scoped>
-.chip {
-  width: 260px;
-  border-radius: 18px;
+.capsule {
+  width: 280px;
+  padding: 14px 16px 12px;
+  border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(8, 10, 18, 0.9);
-  box-shadow: 0 18px 26px rgba(0, 0, 0, 0.4);
-  color: var(--text-primary);
+  box-shadow: 0 25px 40px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px 10px;
+  gap: 12px;
+}
+
+.frosted {
+  background: var(--chip-bg);
+  backdrop-filter: blur(20px);
+}
+
+.capsule.inactive {
+  border-color: rgba(255, 255, 255, 0.08);
+  opacity: 0.9;
+}
+
+.health-ok {
+  border-color: rgba(74, 222, 128, 0.4);
+}
+.health-warn {
+  border-color: rgba(250, 204, 21, 0.4);
+}
+.health-danger {
+  border-color: rgba(248, 113, 113, 0.5);
+}
+
+.capsule__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.capsule__top h2 {
+  margin: 4px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.total {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+
+.usage-orb {
+  position: relative;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 12px;
+  gap: 2px;
+}
+
+.usage-orb__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    conic-gradient(var(--accent-strong) var(--usage), rgba(255, 255, 255, 0.08) var(--usage));
+  -webkit-mask: radial-gradient(circle 30px, transparent 29px, black 30px);
+}
+
+.usage-orb strong {
+  font-size: 18px;
+  z-index: 1;
+}
+
+.stacked {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.stacked strong {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.preference {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.segmented {
+  display: inline-flex;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.segmented button {
+  border: none;
+  padding: 4px 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
   cursor: pointer;
 }
 
-.chip:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.6);
-}
-
-.chip.ok {
-  border-color: rgba(45, 212, 191, 0.4);
-}
-.chip.warn {
-  border-color: rgba(251, 191, 36, 0.5);
-}
-.chip.danger {
-  border-color: rgba(248, 113, 113, 0.6);
-}
-
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-
-.plan {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.usage {
-  text-align: right;
-  line-height: 1.1;
-}
-
-.usage strong {
-  font-size: 18px;
-}
-
-.usage span {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.totals {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
-.value strong {
-  font-size: 20px;
-}
-
-.value .label {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.value.stacked {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 11px;
-  color: var(--text-secondary);
-  text-align: right;
+.segmented button.active {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--text-primary);
 }
 
 footer {
@@ -181,61 +249,44 @@ footer {
   color: var(--text-secondary);
 }
 
+.timestamp {
+  max-width: 120px;
+}
+
 .actions {
   display: flex;
   gap: 6px;
 }
 
-.actions button {
+.ghost {
   border: none;
   border-radius: 999px;
   padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
   color: var(--text-primary);
   font-size: 11px;
+  cursor: pointer;
 }
 
-.preference {
-  font-size: 11px;
-  color: var(--text-secondary);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.preference-toggle {
-  display: flex;
-  gap: 6px;
-}
-
-.preference-toggle button {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: transparent;
-  color: var(--text-secondary);
-  border-radius: 999px;
-  font-size: 11px;
-  padding: 2px 8px;
-}
-
-.preference-toggle button.active {
-  background: rgba(255, 255, 255, 0.15);
-  color: var(--text-primary);
-  border-color: transparent;
+.ghost.danger {
+  color: var(--danger);
 }
 
 .empty {
   text-align: center;
+  padding: 12px 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
-.empty button {
-  align-self: center;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+.primary {
+  border: none;
   border-radius: 999px;
-  padding: 4px 12px;
-  background: transparent;
-  color: var(--text-primary);
+  padding: 6px 18px;
+  background: linear-gradient(120deg, #93c5fd, #c084fc);
+  color: #050505;
+  font-weight: 600;
+  cursor: pointer;
 }
 </style>

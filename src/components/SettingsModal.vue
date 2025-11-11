@@ -87,89 +87,122 @@ const testConnection = async () => {
 <template>
   <teleport to="body">
     <div v-if="visible" class="modal-overlay" @click.self="close">
-      <div class="modal frosted-card">
-        <header>
+      <div class="modal glass">
+        <header class="modal__header">
           <div>
+            <p class="eyebrow">{{ t('brand') }}</p>
             <h2>{{ t('settings.title') }}</h2>
             <p>{{ t('settings.desc') }}</p>
           </div>
           <button class="close-btn" @click="close">×</button>
         </header>
 
-        <section class="form">
-          <label>{{ t('settings.token') }}</label>
-          <div class="token-row">
-            <input
-              :type="showToken ? 'text' : 'password'"
-              v-model="form.apiToken"
-              :placeholder="t('settings.tokenPlaceholder')"
-              :class="{ invalid: !tokenValidation.valid }"
-            />
-            <button class="ghost" @click="showToken = !showToken" type="button">
-              {{ showToken ? t('settings.toggle.hide') : t('settings.toggle.show') }}
-            </button>
-          </div>
-          <small v-if="!tokenValidation.valid" class="error">{{ tokenValidation.message }}</small>
-          <small v-else>从 yesCode 控制台复制以 cr_ 开头的密钥</small>
+        <div class="modal__grid">
+          <section class="card form-card">
+            <label class="field-label">{{ t('settings.token') }}</label>
+            <div class="token-row">
+              <input
+                :type="showToken ? 'text' : 'password'"
+                v-model="form.apiToken"
+                :placeholder="t('settings.tokenPlaceholder')"
+                :class="{ invalid: !tokenValidation.valid }"
+              />
+              <button class="ghost" @click="showToken = !showToken" type="button">
+                {{ showToken ? t('settings.toggle.hide') : t('settings.toggle.show') }}
+              </button>
+            </div>
+            <small v-if="!tokenValidation.valid" class="error">{{ tokenValidation.message }}</small>
+            <small v-else>从 yesCode 控制台复制以 cr_ 开头的密钥</small>
 
-          <div class="toggles">
-            <label>
-              <input type="checkbox" v-model="form.launchTaskbarPanel" />
-              {{ t('settings.showTaskbar') }}
-            </label>
-            <label>
-              <input type="checkbox" v-model="form.showFloatingBar" />
-              {{ t('settings.showFloating') }}
-            </label>
-            <label>
-              <input type="checkbox" v-model="form.compactFloatingMode" />
-              {{ t('settings.compact') }}
-            </label>
-          </div>
-
-          <div class="language-row">
-            <label>{{ t('settings.language') }}</label>
-            <select v-model="form.language">
-              <option value="zh">{{ t('settings.langs.zh') }}</option>
-              <option value="en">{{ t('settings.langs.en') }}</option>
-            </select>
-          </div>
-
-          <div class="preference-row">
-            <label>{{ t('settings.preference') }}</label>
-            <div class="preference-toggle">
-              <label>
-                <input
-                  type="radio"
-                  value="subscription_first"
-                  v-model="form.preference"
-                />
-                {{ t('settings.preferenceOptions.subscription_first') }}
+            <div class="switch-group">
+              <label class="switch-row">
+                <span>{{ t('settings.showTaskbar') }}</span>
+                <span class="switch">
+                  <input type="checkbox" v-model="form.launchTaskbarPanel" />
+                  <span class="slider"></span>
+                </span>
               </label>
-              <label>
-                <input type="radio" value="payg_only" v-model="form.preference" />
-                {{ t('settings.preferenceOptions.payg_only') }}
+              <label class="switch-row">
+                <span>{{ t('settings.showFloating') }}</span>
+                <span class="switch">
+                  <input type="checkbox" v-model="form.showFloatingBar" />
+                  <span class="slider"></span>
+                </span>
+              </label>
+              <label class="switch-row">
+                <span>{{ t('settings.compact') }}</span>
+                <span class="switch">
+                  <input type="checkbox" v-model="form.compactFloatingMode" />
+                  <span class="slider"></span>
+                </span>
               </label>
             </div>
-          </div>
 
-          <div class="live-cards">
-            <article>
-              <span class="label">{{ t('settings.plan') }}</span>
+            <div class="inline-fields">
+              <div>
+                <label class="field-label">{{ t('settings.language') }}</label>
+                <div class="select-shell">
+                  <select v-model="form.language">
+                    <option value="zh">{{ t('settings.langs.zh') }}</option>
+                    <option value="en">{{ t('settings.langs.en') }}</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label class="field-label">{{ t('settings.preference') }}</label>
+                <div class="segmented">
+                  <button
+                    :class="{ active: form.preference === 'subscription_first' }"
+                    @click="form.preference = 'subscription_first'"
+                  >
+                    {{ t('settings.preferenceOptions.subscription_first') }}
+                  </button>
+                  <button
+                    :class="{ active: form.preference === 'payg_only' }"
+                    @click="form.preference = 'payg_only'"
+                  >
+                    {{ t('settings.preferenceOptions.payg_only') }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card live-card">
+            <div class="live-header">
+              <span>{{ t('settings.plan') }}</span>
               <strong>{{ state.snapshot?.profile.subscription_plan?.name ?? '待连接' }}</strong>
-            </article>
-            <article>
-              <span class="label">{{ t('settings.daily') }}</span>
-              <strong>{{ state.snapshot?.profile.subscription_plan?.daily_balance ?? '—' }}</strong>
-            </article>
-            <article>
-              <span class="label">{{ t('settings.refresh') }}</span>
-              <strong>60s</strong>
-            </article>
-          </div>
-        </section>
+            </div>
+            <div class="live-grid">
+              <article>
+                <span>{{ t('panel.total') }}</span>
+                <p>${{ Number(state.snapshot?.balance?.total_balance ?? 0).toFixed(2) }}</p>
+              </article>
+              <article>
+                <span>{{ t('settings.daily') }}</span>
+                <p>{{ state.snapshot?.profile.subscription_plan?.daily_balance ?? '—' }}</p>
+              </article>
+              <article>
+                <span>{{ t('panel.subscription') }}</span>
+                <p>${{ Number(state.snapshot?.balance?.subscription_balance ?? 0).toFixed(2) }}</p>
+              </article>
+              <article>
+                <span>{{ t('panel.payg') }}</span>
+                <p>${{ Number(state.snapshot?.balance?.pay_as_you_go_balance ?? 0).toFixed(2) }}</p>
+              </article>
+              <article>
+                <span>{{ t('panel.weeklyUsage') }}</span>
+                <p>${{ Number(state.snapshot?.balance?.weekly_spent_balance ?? 0).toFixed(2) }}</p>
+              </article>
+              <article>
+                <span>{{ t('settings.refresh') }}</span>
+                <p>60s</p>
+              </article>
+            </div>
+          </section>
+        </div>
 
-        <section class="actions">
+        <footer class="modal__actions">
           <div class="left">
             <button class="ghost" type="button" @click="testConnection" :disabled="isTesting">
               {{ isTesting ? t('settings.testing') : t('settings.test') }}
@@ -181,7 +214,7 @@ const testConnection = async () => {
             <button class="ghost" type="button" @click="close">{{ t('settings.cancel') }}</button>
             <button class="primary" type="button" :disabled="!canSave" @click="save">{{ t('settings.save') }}</button>
           </div>
-        </section>
+        </footer>
       </div>
     </div>
   </teleport>
@@ -191,73 +224,100 @@ const testConnection = async () => {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(5, 5, 8, 0.6);
+  background: rgba(4, 6, 12, 0.75);
+  backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 32px;
   z-index: 999;
 }
 
-.modal {
-  width: 420px;
-  max-width: 100%;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
+.modal.glass {
+  width: min(720px, 100%);
+  background: var(--panel-bg);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 32px;
+  padding: 28px 32px;
+  box-shadow: 0 45px 80px rgba(0, 0, 0, 0.6);
+  color: var(--text-primary);
 }
 
-header {
+.modal__header {
   display: flex;
   justify-content: space-between;
+  gap: 16px;
   align-items: flex-start;
 }
 
-header h2 {
-  margin: 0;
-}
-
-header p {
+.modal__header p {
   margin: 4px 0 0;
   color: var(--text-secondary);
-  font-size: 13px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
 }
 
 .close-btn {
-  background: none;
   border: none;
-  color: var(--text-secondary);
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
   font-size: 20px;
   cursor: pointer;
 }
 
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.modal__grid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 20px;
+}
+
+.card {
+  border-radius: 26px;
+  padding: 20px;
+  background: var(--card-bg);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.02);
+}
+
+.field-label {
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
 .token-row {
+  margin-top: 10px;
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
-.form input[type='password'],
-.form input[type='text'] {
+.token-row input {
   flex: 1;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(5, 6, 12, 0.35);
   color: var(--text-primary);
+  font-size: 14px;
 }
 
-.form input.invalid {
+.token-row input.invalid {
   border-color: var(--danger);
 }
 
 small {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
@@ -265,108 +325,18 @@ small.error {
   color: var(--danger);
 }
 
-.toggles {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.toggles label {
-  font-size: 13px;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.live-cards {
-  margin-top: 10px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.language-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.language-row select {
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-primary);
-}
-
-.preference-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.preference-toggle {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.preference-toggle label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.live-cards article {
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.live-cards .label {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.live-cards strong {
-  display: block;
-  margin-top: 6px;
-  font-size: 15px;
-}
-
-.actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-}
-
-.right {
-  display: flex;
-  gap: 10px;
-}
-
 .ghost {
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 999px;
-  padding: 6px 14px;
+  padding: 8px 18px;
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
+}
+
+.ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .ghost.danger {
@@ -374,18 +344,202 @@ small.error {
   color: var(--danger);
 }
 
-.primary {
-  border: none;
+.switch-group {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.switch-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  gap: 12px;
+}
+
+.switch {
+  position: relative;
+  width: 46px;
+  height: 26px;
   border-radius: 999px;
-  padding: 6px 18px;
-  background: var(--accent);
-  color: #101012;
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.12);
+  display: inline-block;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  transition: background 0.2s ease;
+}
+
+.slider::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  top: 4px;
+  left: 4px;
+  transition: transform 0.2s ease;
+}
+
+.switch input:checked + .slider {
+  background: linear-gradient(120deg, #a5b4fc, #60a5fa);
+}
+
+.switch input:checked + .slider::after {
+  transform: translateX(18px);
+}
+
+.inline-fields {
+  margin-top: 24px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.inline-fields > div {
+  flex: 1;
+  min-width: 200px;
+}
+
+.select-shell {
+  margin-top: 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+select {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  appearance: none;
+}
+
+.segmented {
+  margin-top: 8px;
+  display: inline-flex;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.segmented button {
+  border: none;
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--text-secondary);
   cursor: pointer;
+  font-size: 13px;
+}
+
+.segmented button.active {
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--text-primary);
+}
+
+.live-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.live-header span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.live-header strong {
+  display: block;
+  font-size: 20px;
+  margin-top: 4px;
+}
+
+.live-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.live-grid article {
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.live-grid span {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.live-grid p {
+  margin: 6px 0 0;
+  font-size: 16px;
+}
+
+.modal__actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .test-result {
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.right {
+  display: flex;
+  gap: 10px;
+}
+
+.primary {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 20px;
+  background: linear-gradient(120deg, #c084fc, #60a5fa);
+  color: #050505;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(96, 165, 250, 0.35);
+}
+
+@media (max-width: 720px) {
+  .modal__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .inline-fields {
+    flex-direction: column;
+  }
 }
 </style>
