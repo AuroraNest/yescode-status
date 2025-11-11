@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { configService, DEFAULT_HOTKEY, DEFAULT_COLLAPSED_METRICS, type CollapsedMetric } from '../services/configService'
+import { configService, DEFAULT_HOTKEY, DEFAULT_COLLAPSED_METRICS, MAX_COLLAPSED_METRICS, type CollapsedMetric } from '../services/configService'
 import { apiService } from '../services/apiService'
 import { useYescodeStore } from '../composables/useYescodeStore'
 import { useI18n } from '../i18n'
@@ -13,8 +13,6 @@ const { state, balancePreference, updatePreference } = useYescodeStore()
 const { t } = useI18n()
 
 const COLLAPSED_POOL: CollapsedMetric[] = ['usage', 'subscription', 'payg', 'weekly_limit', 'weekly_remaining', 'total']
-const MAX_COLLAPSED = 3
-
 const form = reactive({
   apiToken: configService.config.apiToken || '',
   launchTaskbarPanel: configService.preferences.launchTaskbarPanel,
@@ -60,7 +58,7 @@ const collapsedOptions = computed(() =>
     key: option,
     label: t(`panel.collapsedOptions.${option}`),
     active: form.collapsedMetrics.includes(option),
-    disabled: !form.collapsedMetrics.includes(option) && form.collapsedMetrics.length >= MAX_COLLAPSED
+    disabled: !form.collapsedMetrics.includes(option) && form.collapsedMetrics.length >= MAX_COLLAPSED_METRICS
   }))
 )
 const canSave = computed(() => tokenValidation.value.valid && hotkeyValidation.value.valid)
@@ -121,7 +119,7 @@ const toggleCollapsedMetric = (option: CollapsedMetric) => {
     current.splice(index, 1)
     return
   }
-  if (current.length >= MAX_COLLAPSED) {
+  if (current.length >= MAX_COLLAPSED_METRICS) {
     return
   }
   current.push(option)
@@ -220,7 +218,7 @@ const toggleCollapsedMetric = (option: CollapsedMetric) => {
             </div>
           </section>
 
-          <section class="card stack">
+<section class="card stack">
             <div>
               <label class="field-label">{{ t('settings.collapsed.title') }}</label>
               <small>{{ t('settings.collapsed.hint') }}</small>

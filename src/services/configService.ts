@@ -4,6 +4,7 @@ const CONFIG_KEY = 'yescode-status-config'
 const PREF_KEY = 'yescode-status-preferences'
 export const DEFAULT_HOTKEY = 'Ctrl+Y+E+S'
 export type CollapsedMetric = 'usage' | 'subscription' | 'payg' | 'weekly_limit' | 'weekly_remaining' | 'total'
+export const MAX_COLLAPSED_METRICS = 4
 export const DEFAULT_COLLAPSED_METRICS: CollapsedMetric[] = ['usage', 'subscription', 'weekly_limit']
 const COLLAPSED_POOL: CollapsedMetric[] = ['usage', 'subscription', 'payg', 'weekly_limit', 'weekly_remaining', 'total']
 
@@ -134,7 +135,7 @@ export class ConfigService {
     if (!filtered.length) {
       return [...DEFAULT_COLLAPSED_METRICS]
     }
-    return filtered.slice(0, 3)
+    return filtered.slice(0, MAX_COLLAPSED_METRICS)
   }
 }
 
