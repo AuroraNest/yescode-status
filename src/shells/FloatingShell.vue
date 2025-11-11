@@ -163,6 +163,7 @@ watch(
   align-items: flex-start;
   justify-content: center;
   padding: 12px 16px 18px;
+  background: transparent;
 }
 
 .panel-wrapper {

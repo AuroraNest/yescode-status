@@ -23,10 +23,13 @@ const messages = {
       hintReady: '点击刷新',
       cta: '配置 / 管理',
       usage: '订阅已用',
-      collapsed: {
+      collapsedOptions: {
         usage: '用量',
-        remaining: '剩余',
-        weekly: '周限额'
+        subscription: '订阅余额',
+        payg: '按量余额',
+        weekly_limit: '周限额',
+        weekly_remaining: '本周剩余',
+        total: '总余额'
       },
       badge: {
         ready: '状态良好',
@@ -75,6 +78,11 @@ const messages = {
         subscription_first: '订阅优先',
         payg_only: '仅按量'
       },
+      collapsed: {
+        title: '折叠视图指标',
+        hint: '最多选择 3 个折叠卡片显示的指标',
+        limit: '最多选择 3 个指标'
+      },
       plan: '订阅计划',
       daily: '每日额度',
       refresh: '刷新频率',
@@ -112,10 +120,13 @@ const messages = {
       hintReady: 'Use refresh or settings to stay in control',
       cta: 'Configure / Manage',
       usage: 'Used',
-      collapsed: {
+      collapsedOptions: {
         usage: 'Usage',
-        remaining: 'Balance',
-        weekly: 'Weekly cap'
+        subscription: 'Subscription',
+        payg: 'Pay-as-you-go',
+        weekly_limit: 'Weekly cap',
+        weekly_remaining: 'Weekly left',
+        total: 'Total'
       },
       badge: {
         ready: 'All good',
@@ -163,6 +174,11 @@ const messages = {
       preferenceOptions: {
         subscription_first: 'Subscription first',
         payg_only: 'Pay-as-you-go only'
+      },
+      collapsed: {
+        title: 'Collapsed view metrics',
+        hint: 'Choose up to 3 indicators to show when the panel is collapsed',
+        limit: 'Select up to 3 indicators'
       },
       plan: 'Plan',
       daily: 'Daily quota',

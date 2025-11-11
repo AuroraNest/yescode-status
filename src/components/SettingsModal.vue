@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { configService, DEFAULT_HOTKEY } from '../services/configService'
+import { configService, DEFAULT_HOTKEY, DEFAULT_COLLAPSED_METRICS, type CollapsedMetric } from '../services/configService'
 import { apiService } from '../services/apiService'
 import { useYescodeStore } from '../composables/useYescodeStore'
 import { useI18n } from '../i18n'
@@ -12,6 +12,9 @@ const emit = defineEmits<{ close: []; saved: [] }>()
 const { state, balancePreference, updatePreference } = useYescodeStore()
 const { t } = useI18n()
 
+const COLLAPSED_POOL: CollapsedMetric[] = ['usage', 'subscription', 'payg', 'weekly_limit', 'weekly_remaining', 'total']
+const MAX_COLLAPSED = 3
+
 const form = reactive({
   apiToken: configService.config.apiToken || '',
   launchTaskbarPanel: configService.preferences.launchTaskbarPanel,
@@ -19,7 +22,8 @@ const form = reactive({
   compactFloatingMode: configService.preferences.compactFloatingMode,
   preference: balancePreference.value,
   language: configService.preferences.language,
-  hotkey: configService.preferences.hotkey
+  hotkey: configService.preferences.hotkey,
+  collapsedMetrics: [...(configService.preferences.collapsedMetrics || DEFAULT_COLLAPSED_METRICS)]
 })
 
 const showToken = ref(false)
@@ -37,6 +41,7 @@ watch(
       form.preference = balancePreference.value
       form.language = configService.preferences.language
       form.hotkey = configService.preferences.hotkey
+      form.collapsedMetrics = [...(configService.preferences.collapsedMetrics || DEFAULT_COLLAPSED_METRICS)]
       testResult.value = ''
     }
   }
@@ -50,6 +55,14 @@ const hotkeyValidation = computed(() => {
   }
   return { valid: true, message: parsed.display }
 })
+const collapsedOptions = computed(() =>
+  COLLAPSED_POOL.map(option => ({
+    key: option,
+    label: t(`panel.collapsedOptions.${option}`),
+    active: form.collapsedMetrics.includes(option),
+    disabled: !form.collapsedMetrics.includes(option) && form.collapsedMetrics.length >= MAX_COLLAPSED
+  }))
+)
 const canSave = computed(() => tokenValidation.value.valid && hotkeyValidation.value.valid)
 
 const close = () => emit('close')
@@ -62,7 +75,8 @@ const save = async () => {
     showFloatingBar: form.showFloatingBar,
     compactFloatingMode: form.compactFloatingMode,
     language: form.language,
-    hotkey: form.hotkey.trim()
+    hotkey: form.hotkey.trim(),
+    collapsedMetrics: [...form.collapsedMetrics]
   })
   if (form.preference !== balancePreference.value) {
     await updatePreference(form.preference)
@@ -74,6 +88,7 @@ const resetAll = () => {
   if (!confirm('确定要重置所有配置吗？')) return
   configService.resetConfig()
   form.apiToken = ''
+  form.collapsedMetrics = [...DEFAULT_COLLAPSED_METRICS]
   testResult.value = '配置已重置'
 }
 
@@ -96,6 +111,20 @@ const testConnection = async () => {
 
 const restoreHotkey = () => {
   form.hotkey = DEFAULT_HOTKEY
+}
+
+const toggleCollapsedMetric = (option: CollapsedMetric) => {
+  const current = form.collapsedMetrics
+  const index = current.indexOf(option)
+  if (index >= 0) {
+    if (current.length === 1) return
+    current.splice(index, 1)
+    return
+  }
+  if (current.length >= MAX_COLLAPSED) {
+    return
+  }
+  current.push(option)
 }
 </script>
 
@@ -192,6 +221,26 @@ const restoreHotkey = () => {
           </section>
 
           <section class="card stack">
+            <div>
+              <label class="field-label">{{ t('settings.collapsed.title') }}</label>
+              <small>{{ t('settings.collapsed.hint') }}</small>
+            </div>
+            <div class="chip-grid">
+              <button
+                v-for="option in collapsedOptions"
+                :key="option.key"
+                class="chip"
+                :class="{ active: option.active, disabled: option.disabled }"
+                type="button"
+                @click="toggleCollapsedMetric(option.key)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+            <small>{{ t('settings.collapsed.limit') }}</small>
+          </section>
+
+          <section class="card stack">
             <label class="field-label">{{ t('settings.hotkey') }}</label>
             <div class="token-row">
               <input
@@ -276,24 +325,28 @@ const restoreHotkey = () => {
   z-index: 999;
 }
 
-.modal.glass {
-  width: min(720px, 100%);
+.modal-sheet {
+  width: min(600px, 100%);
+  max-height: min(720px, 90vh);
   background: var(--panel-bg);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 32px;
-  padding: 28px 32px;
+  border-radius: 28px;
+  padding: 22px 26px 18px;
   box-shadow: 0 45px 80px rgba(0, 0, 0, 0.6);
   color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.modal__header {
+.sheet-header {
   display: flex;
   justify-content: space-between;
   gap: 16px;
   align-items: flex-start;
 }
 
-.modal__header p {
+.sheet-header p {
   margin: 4px 0 0;
   color: var(--text-secondary);
 }
@@ -317,29 +370,59 @@ const restoreHotkey = () => {
   cursor: pointer;
 }
 
-.modal__grid {
-  margin-top: 24px;
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-  gap: 20px;
+.sheet-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 6px;
 }
 
 .card {
-  border-radius: 26px;
-  padding: 20px;
+  border-radius: 22px;
+  padding: 18px;
   background: var(--card-bg);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.02);
 }
 
-.hotkey-card {
+.stack {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
 }
 
-.hotkey-card .token-row {
-  margin-top: 8px;
+.grid-two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chip.active {
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--text-primary);
+}
+
+.chip.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .field-label {
@@ -348,7 +431,7 @@ const restoreHotkey = () => {
 }
 
 .token-row {
-  margin-top: 10px;
+  margin-top: 8px;
   display: flex;
   gap: 10px;
 }
@@ -397,20 +480,12 @@ small.error {
   color: var(--danger);
 }
 
-.switch-group {
-  margin-top: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 .switch-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 13px;
-  color: var(--text-secondary);
   gap: 12px;
+  color: var(--text-secondary);
 }
 
 .switch {
@@ -456,18 +531,6 @@ small.error {
   transform: translateX(18px);
 }
 
-.inline-fields {
-  margin-top: 24px;
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.inline-fields > div {
-  flex: 1;
-  min-width: 200px;
-}
-
 .select-shell {
   margin-top: 8px;
   border-radius: 14px;
@@ -508,69 +571,59 @@ select {
   color: var(--text-primary);
 }
 
-.live-card {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.live-header span {
+.stats .stats-header span {
   font-size: 12px;
   color: var(--text-secondary);
 }
 
-.live-header strong {
+.stats .stats-header strong {
   display: block;
   font-size: 20px;
   margin-top: 4px;
 }
 
-.live-grid {
+.stats-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
+  margin-top: 12px;
 }
 
-.live-grid article {
+.stats-grid article {
   padding: 12px;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.live-grid span {
+.stats-grid span {
   font-size: 11px;
   color: var(--text-secondary);
 }
 
-.live-grid p {
-  margin: 6px 0 0;
+.stats-grid strong {
+  margin-top: 4px;
+  display: block;
   font-size: 16px;
 }
 
-.modal__actions {
-  margin-top: 24px;
+.sheet-footer {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
-}
-
-.left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .test-result {
   font-size: 12px;
   color: var(--text-secondary);
+  flex: 1;
+  min-width: 160px;
 }
 
-.right {
+.footer-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .primary {
@@ -584,15 +637,18 @@ select {
   box-shadow: 0 10px 25px rgba(96, 165, 250, 0.35);
 }
 
-@media (max-width: 720px) {
-  .modal__grid {
-    grid-template-columns: 1fr;
+@media (max-width: 600px) {
+  .modal-sheet {
+    padding: 18px;
   }
-}
 
-@media (max-width: 520px) {
-  .inline-fields {
+  .sheet-footer {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .footer-actions {
+    justify-content: space-between;
   }
 }
 </style>
