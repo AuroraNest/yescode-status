@@ -23,6 +23,14 @@ const messages = {
       hintReady: '点击刷新',
       cta: '配置 / 管理',
       usage: '订阅已用',
+      badge: {
+        ready: '状态良好',
+        warn: '注意额度',
+        low: '额度紧张',
+        loading: '连接中',
+        waiting: '待配置',
+        error: '连接失败'
+      },
       preference: {
         title: '扣费模式',
         subscription_first: '订阅优先',
@@ -41,6 +49,7 @@ const messages = {
       hide: '隐藏',
       unavailable: '暂不可用',
       notConfigured: '尚未配置 API Token',
+      preferenceLabel: '扣费模式',
       preference: {
         subscription_first: '订阅优先',
         payg_only: '仅按量'
@@ -97,6 +106,14 @@ const messages = {
       hintReady: 'Use refresh or settings to stay in control',
       cta: 'Configure / Manage',
       usage: 'Used',
+      badge: {
+        ready: 'All good',
+        warn: 'Watch usage',
+        low: 'Quota low',
+        loading: 'Connecting',
+        waiting: 'Waiting',
+        error: 'Error'
+      },
       preference: {
         title: 'Billing preference',
         subscription_first: 'Subscription first',
@@ -115,6 +132,7 @@ const messages = {
       hide: 'Hide',
       unavailable: 'Unavailable',
       notConfigured: 'API Token required',
+      preferenceLabel: 'Preference',
       preference: {
         subscription_first: 'Sub first',
         payg_only: 'Payg only'

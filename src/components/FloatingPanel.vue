@@ -56,15 +56,22 @@ const preferenceText = computed(() => t(`panel.preference.${props.preference}`))
 
 const statusBadge = computed<{ text: string; tone: BadgeTone }>(() => {
   if (props.state.status === 'error') {
-    return { text: props.state.error || t('status.error'), tone: 'danger' }
+    return { text: props.state.error || t('panel.badge.error'), tone: 'danger' }
   }
   if (props.state.status === 'loading') {
-    return { text: t('status.connecting'), tone: 'neutral' }
+    return { text: t('panel.badge.loading'), tone: 'neutral' }
   }
   if (!props.state.snapshot) {
-    return { text: t('status.waiting'), tone: 'muted' }
+    return { text: t('panel.badge.waiting'), tone: 'muted' }
   }
-  return { text: t('panel.hintReady'), tone: props.healthLevel }
+  const tone = props.healthLevel
+  const text =
+    tone === 'danger'
+      ? t('panel.badge.low')
+      : tone === 'warn'
+        ? t('panel.badge.warn')
+        : t('panel.badge.ready')
+  return { text, tone }
 })
 
 const updatedLabel = computed(() => {
@@ -75,26 +82,28 @@ const updatedLabel = computed(() => {
 
 <template>
   <section class="panel" :class="{ collapsed: !isExpanded }" @dblclick="emit('toggleExpand')">
-    <div class="action-group">
-      <button class="icon ghost" title="刷新" @click.stop="emit('refresh')">⟳</button>
-      <button class="icon ghost" title="设置" @click.stop="emit('openSettings')">⚙</button>
-      <button class="icon ghost" title="折叠" @click.stop="emit('toggleExpand')">
-        {{ isExpanded ? '▾' : '▴' }}
-      </button>
-      <button class="icon ghost danger" title="关闭" @click.stop="emit('close')">×</button>
-    </div>
-
     <header class="panel__top">
       <div class="title-stack">
         <p class="eyebrow">{{ t('brand') }}</p>
-        <h1>{{ headline }}</h1>
-        <p class="subtitle">{{ planName }}</p>
+        <div class="title-line">
+          <div>
+            <h1>{{ headline }}</h1>
+            <p class="subtitle">{{ planName }}</p>
+          </div>
+          <span class="status-pill" :class="statusBadge.tone">{{ statusBadge.text }}</span>
+        </div>
       </div>
-      <div class="status-cluster">
-        <span class="status-pill" :class="statusBadge.tone">{{ statusBadge.text }}</span>
-        <span class="updated">{{ updatedLabel }}</span>
+
+      <div class="top-actions">
+        <button class="icon ghost" title="刷新" @click.stop="emit('refresh')">⟳</button>
+        <button class="icon ghost" title="折叠" @click.stop="emit('toggleExpand')">
+          {{ isExpanded ? '▾' : '▴' }}
+        </button>
+        <button class="icon ghost" title="设置" @click.stop="emit('openSettings')">⚙</button>
+        <button class="icon ghost danger" title="关闭" @click.stop="emit('close')">×</button>
       </div>
     </header>
+    <p class="updated">{{ updatedLabel }}</p>
 
     <transition name="fade">
       <div v-if="isExpanded" class="panel__body">
@@ -171,9 +180,9 @@ const updatedLabel = computed(() => {
 <style scoped>
 .panel {
   position: relative;
-  width: 360px;
-  padding: 20px;
-  border-radius: 28px;
+  width: 336px;
+  padding: 18px 18px 20px;
+  border-radius: 26px;
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
   box-shadow: 0 36px 60px rgba(3, 6, 20, 0.6);
@@ -186,22 +195,18 @@ const updatedLabel = computed(() => {
   padding-bottom: 12px;
 }
 
-.action-group {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  display: flex;
-  gap: 6px;
-  -webkit-app-region: no-drag;
-}
-
 .panel__top {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  padding-right: 80px;
   gap: 12px;
   -webkit-app-region: no-drag;
+}
+
+.title-line {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .title-stack h1 {
@@ -224,20 +229,19 @@ const updatedLabel = computed(() => {
   font-size: 13px;
 }
 
-.status-cluster {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: flex-end;
-  -webkit-app-region: no-drag;
-}
-
 .status-pill {
   padding: 4px 12px;
   border-radius: 999px;
   font-size: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.08);
+}
+
+.top-actions {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  -webkit-app-region: no-drag;
 }
 
 .status-pill.ok {
@@ -275,9 +279,9 @@ const updatedLabel = computed(() => {
 }
 
 .icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-primary);

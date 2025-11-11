@@ -50,13 +50,11 @@ const updatedAt = computed(() =>
       <header class="capsule__top">
         <div>
           <p class="eyebrow">{{ t('brand') }}</p>
-          <h2>{{ planName }}</h2>
+          <div class="title-line">
+            <h2>{{ planName }}</h2>
+            <span class="pill usage-pill">{{ usagePercentage.toFixed(0) }}%</span>
+          </div>
           <p class="total">${{ total.toFixed(2) }}</p>
-        </div>
-        <div class="usage-orb">
-          <div class="usage-orb__ring" :style="{ '--usage': usagePercentage + '%' }"></div>
-          <strong>{{ usagePercentage.toFixed(0) }}%</strong>
-          <small>{{ t('taskbar.subscriptionUsed') }}</small>
         </div>
       </header>
 
@@ -71,22 +69,9 @@ const updatedAt = computed(() =>
         </div>
       </section>
 
-      <section class="preference">
-        <span>{{ t(`taskbar.preference.${preference}`) }}</span>
-        <div class="segmented">
-          <button
-            :class="{ active: preference === 'subscription_first' }"
-            @click.stop="emit('changePreference', 'subscription_first')"
-          >
-            {{ t('panel.preference.subscription_first') }}
-          </button>
-          <button
-            :class="{ active: preference === 'payg_only' }"
-            @click.stop="emit('changePreference', 'payg_only')"
-          >
-            {{ t('panel.preference.payg_only') }}
-          </button>
-        </div>
+      <section class="preference-chip">
+        <span>{{ t('taskbar.preferenceLabel') }}</span>
+        <strong>{{ t(`taskbar.preference.${preference}`) }}</strong>
       </section>
 
       <footer>
@@ -112,9 +97,9 @@ const updatedAt = computed(() =>
 
 <style scoped>
 .capsule {
-  width: 280px;
-  padding: 14px 16px 12px;
-  border-radius: 24px;
+  width: 260px;
+  padding: 12px 14px 10px;
+  border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 25px 40px rgba(0, 0, 0, 0.35);
   display: flex;
@@ -145,7 +130,12 @@ const updatedAt = computed(() =>
 .capsule__top {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+}
+
+.title-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .eyebrow {
@@ -169,32 +159,11 @@ const updatedAt = computed(() =>
   letter-spacing: -0.3px;
 }
 
-.usage-orb {
-  position: relative;
-  width: 78px;
-  height: 78px;
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+.pill {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
   font-size: 12px;
-  gap: 2px;
-}
-
-.usage-orb__ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background:
-    conic-gradient(var(--accent-strong) var(--usage), rgba(255, 255, 255, 0.08) var(--usage));
-  -webkit-mask: radial-gradient(circle 30px, transparent 29px, black 30px);
-}
-
-.usage-orb strong {
-  font-size: 18px;
-  z-index: 1;
 }
 
 .stacked {
@@ -212,33 +181,11 @@ const updatedAt = computed(() =>
   font-size: 16px;
 }
 
-.preference {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.segmented {
-  display: inline-flex;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  overflow: hidden;
-}
-
-.segmented button {
-  border: none;
-  padding: 4px 12px;
-  background: transparent;
-  color: var(--text-secondary);
+.preference-chip {
   font-size: 11px;
-  cursor: pointer;
-}
-
-.segmented button.active {
-  background: rgba(255, 255, 255, 0.16);
-  color: var(--text-primary);
+  color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
 }
 
 footer {
