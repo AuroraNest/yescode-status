@@ -16,7 +16,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 type WindowMode = 'panel' | 'capsule'
 
 const PANEL_BOUNDS = { width: 360, height: 184 }
-const CAPSULE_BOUNDS = { width: 280, height: 140 }
+const CAPSULE_BOUNDS = { width: 300, height: 220 }
 
 const isMac = process.platform === 'darwin'
 let isQuitting = false
@@ -34,15 +34,21 @@ let lastHotkeyRaw = DEFAULT_HOTKEY
 let parsedHotkey: HotkeyParseResult | null = null
 
 function resolveTrayIcon() {
-  const candidates = [
-    path.join(process.env.VITE_PUBLIC ?? '', 'icon.png'),
-    path.join(process.env.VITE_PUBLIC ?? '', 'icon.ico'),
-    path.join(process.env.VITE_PUBLIC ?? '', 'iconTemplate.png'),
-    path.join(process.env.VITE_PUBLIC ?? '', 'vite.svg')
-  ]
+  const lookupRoots = [
+    process.env.VITE_PUBLIC,
+    path.join(process.env.APP_ROOT ?? '', 'public'),
+    RENDERER_DIST,
+    process.env.APP_ROOT
+  ].filter(Boolean) as string[]
 
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
+  const preferredNames = process.platform === 'win32'
+    ? ['icon.ico', 'icon.png', 'iconTemplate.png', 'vite.svg']
+    : ['icon.png', 'iconTemplate.png', 'icon.ico', 'vite.svg']
+
+  for (const root of lookupRoots) {
+    for (const name of preferredNames) {
+      const candidate = path.join(root, name)
+      if (!fs.existsSync(candidate)) continue
       const image = nativeImage.createFromPath(candidate)
       if (!image.isEmpty()) return image
     }
@@ -111,11 +117,6 @@ function createWindow() {
       event.preventDefault()
       showCapsule()
     }
-  })
-
-  win.on('minimize', (event: Event) => {
-    event.preventDefault()
-    showCapsule()
   })
 
   win.on('moved', () => {
@@ -329,7 +330,12 @@ ipcMain.handle('get-window-position', () => {
 ipcMain.handle('quit-app', () => app.quit())
 ipcMain.handle('open-floating-window', () => showPanel())
 ipcMain.handle('toggle-taskbar-panel', () => (mode === 'capsule' ? showPanel() : showCapsule()))
-ipcMain.handle('minimize-window', () => showCapsule())
+ipcMain.handle('minimize-window', () => {
+  if (!win) return
+  mode = 'panel'
+  win.setSkipTaskbar(false)
+  win.minimize()
+})
 ipcMain.handle('hide-window', () => win?.hide())
 
 ipcMain.handle('update-tray-tooltip', (_event, payload: { total: number; usage: number }) => {
