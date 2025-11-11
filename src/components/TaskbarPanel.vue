@@ -84,6 +84,15 @@ const updatedAt = computed(() =>
           <button class="ghost danger" @click.stop="emit('hide')">{{ t('taskbar.hide') }}</button>
         </div>
       </footer>
+      <p class="author-link">
+        <a
+          href="https://github.com/AuroraNest/yescode-status?tab=readme-ov-file"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          by Aurora
+        </a>
+      </p>
     </template>
 
     <template v-else>
@@ -235,5 +244,23 @@ footer {
   color: #050505;
   font-weight: 600;
   cursor: pointer;
+}
+
+.author-link {
+  margin: 0;
+  text-align: right;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.author-link a {
+  color: inherit;
+  opacity: 0.8;
+  text-decoration: none;
+}
+
+.author-link a:hover {
+  opacity: 1;
+  text-decoration: underline;
 }
 </style>
