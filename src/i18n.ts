@@ -23,6 +23,11 @@ const messages = {
       hintReady: '点击刷新',
       cta: '配置 / 管理',
       usage: '订阅已用',
+      collapsed: {
+        usage: '用量',
+        remaining: '剩余',
+        weekly: '周限额'
+      },
       badge: {
         ready: '状态良好',
         warn: '注意额度',
@@ -106,6 +111,11 @@ const messages = {
       hintReady: 'Use refresh or settings to stay in control',
       cta: 'Configure / Manage',
       usage: 'Used',
+      collapsed: {
+        usage: 'Usage',
+        remaining: 'Balance',
+        weekly: 'Weekly cap'
+      },
       badge: {
         ready: 'All good',
         warn: 'Watch usage',
