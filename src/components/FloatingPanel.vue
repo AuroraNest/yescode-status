@@ -265,6 +265,7 @@ const collapsedCards = computed<CollapsedCard[]>(() => {
 .panel {
   position: relative;
   width: 336px;
+  max-width: 100%;
   padding: 18px 18px 20px;
   border-radius: 26px;
   background: var(--panel-bg);
@@ -272,11 +273,12 @@ const collapsedCards = computed<CollapsedCard[]>(() => {
   box-shadow: 0 36px 60px rgba(3, 6, 20, 0.6);
   color: var(--text-primary);
   -webkit-app-region: drag;
-  transition: transform 0.25s ease, padding 0.2s ease;
+  transition: transform 0.25s ease, padding 0.2s ease, width 0.2s ease;
 }
 
 .panel.collapsed {
-  padding-bottom: 12px;
+  width: 260px;
+  padding: 14px 14px 16px;
 }
 
 .panel__top {
@@ -325,6 +327,7 @@ const collapsedCards = computed<CollapsedCard[]>(() => {
   display: inline-flex;
   gap: 6px;
   align-items: center;
+  flex-wrap: wrap;
   -webkit-app-region: no-drag;
 }
 
@@ -376,10 +379,29 @@ const collapsedCards = computed<CollapsedCard[]>(() => {
   -webkit-app-region: no-drag;
 }
 
+.panel.collapsed .panel__body {
+  display: none;
+}
+
+.panel.collapsed .status-line {
+  justify-content: space-between;
+}
+
+.panel.collapsed .top-actions {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.panel.collapsed .icon {
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+}
+
 .panel__collapsed {
   margin-top: 12px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 8px;
   -webkit-app-region: no-drag;
 }
