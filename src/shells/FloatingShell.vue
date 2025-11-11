@@ -50,9 +50,11 @@ const openSettings = () => {
   resizeWindow(SETTINGS_HEIGHT)
 }
 
-const closeApp = () => {
-  if (electronEnabled && window.electronAPI.quitApp) {
-    window.electronAPI.quitApp()
+const minimizeToTray = () => {
+  if (electronEnabled && window.electronAPI.minimizeWindow) {
+    window.electronAPI.minimizeWindow()
+  } else {
+    isExpanded.value = false
   }
 }
 
@@ -142,7 +144,7 @@ watch(
       @refresh="handleRefresh"
       @open-settings="openSettings"
       @toggle-expand="toggleExpand"
-      @close="closeApp"
+      @close="minimizeToTray"
       @change-preference="changePreference"
     />
   </div>
