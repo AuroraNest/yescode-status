@@ -13,7 +13,7 @@ export interface StoredConfig {
 }
 
 export interface UserPreferences {
-  theme: 'dark' | 'light' | 'auto'
+  theme: 'dark' | 'light' | 'system'
   launchTaskbarPanel: boolean
   showFloatingBar: boolean
   showCliTips: boolean
@@ -31,7 +31,7 @@ export class ConfigService {
   })
 
   public preferences = reactive<UserPreferences>({
-    theme: 'dark',
+    theme: 'system',
     launchTaskbarPanel: true,
     showFloatingBar: true,
     showCliTips: false,
@@ -89,11 +89,8 @@ export class ConfigService {
     if (!token?.trim()) {
       return { valid: false, message: 'API Token 不能为空' }
     }
-    if (!token.startsWith('cr_')) {
-      return { valid: false, message: '应以 cr_ 开头' }
-    }
-    if (token.length < 10) {
-      return { valid: false, message: 'Token 长度不足' }
+    if (token.trim().length < 10) {
+      return { valid: false, message: 'Token 长度不足（至少 10 个字符）' }
     }
     return { valid: true, message: '格式正确' }
   }
@@ -110,11 +107,20 @@ export class ConfigService {
     localStorage.setItem(PREF_KEY, JSON.stringify(this.preferences))
   }
 
+  // 别名方法，方便组件调用
+  public updateConfig(newConfig: Partial<StoredConfig>) {
+    this.saveConfig(newConfig)
+  }
+
+  public updatePreferences(newPrefs: Partial<UserPreferences>) {
+    this.savePreferences(newPrefs)
+  }
+
   public resetConfig() {
     localStorage.removeItem(CONFIG_KEY)
     localStorage.removeItem(PREF_KEY)
     this.config.apiToken = ''
-    this.preferences.theme = 'dark'
+    this.preferences.theme = 'system'
     this.preferences.launchTaskbarPanel = true
     this.preferences.showFloatingBar = true
     this.preferences.showCliTips = false

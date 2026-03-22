@@ -14,7 +14,8 @@
   ],
   "mac": {
     "target": [
-      "dmg"
+      "dmg",
+      "dir"
     ],
     "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
   },

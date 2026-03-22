@@ -1,4 +1,4 @@
-import { ipcRenderer, contextBridge } from 'electron'
+import { ipcRenderer, contextBridge, shell } from 'electron'
 
 contextBridge.exposeInMainWorld('ipcRenderer', {
   on(...args: Parameters<typeof ipcRenderer.on>) {
@@ -28,7 +28,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   toggleTaskbarPanel: () => ipcRenderer.invoke('toggle-taskbar-panel'),
   minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
   hideWindow: () => ipcRenderer.invoke('hide-window'),
-  updateTrayTooltip: (payload: { total: number; usage: number }) =>
+  updateTrayTooltip: (payload: { total: number; usage: number; label?: string }) =>
     ipcRenderer.invoke('update-tray-tooltip', payload),
-  setGlobalHotkey: (hotkey: string) => ipcRenderer.invoke('set-global-hotkey', hotkey)
+  setGlobalHotkey: (hotkey: string) => ipcRenderer.invoke('set-global-hotkey', hotkey),
+  openExternal: (url: string) => shell.openExternal(url)
 })

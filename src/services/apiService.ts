@@ -1,3 +1,5 @@
+import { detectTokenMode } from '../shared/tokenMode'
+
 const API_BASE = 'https://co.yes.vg/api/v1'
 const BALANCE_ENDPOINT = `${API_BASE}/user/balance`
 const PROFILE_ENDPOINT = `${API_BASE}/auth/profile`
@@ -55,6 +57,13 @@ class ApiService {
   private buildHeaders(token: string) {
     if (!token?.trim()) {
       throw new Error('API Token 未配置')
+    }
+    const mode = detectTokenMode(token)
+    if (mode === 'team') {
+      throw new Error('当前为团队 Token，请使用团队接口')
+    }
+    if (mode === 'unknown') {
+      throw new Error('不支持的 Token 类型，请使用 cr_、team_ 或 team- 开头的 Token')
     }
 
     return {

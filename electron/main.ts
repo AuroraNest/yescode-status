@@ -1,4 +1,8 @@
-import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, screen, globalShortcut } from 'electron'
+/**
+ * Electron 主进程 - 新版 UI
+ * 单一弹出面板模式（菜单栏应用）
+ */
+import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, screen, globalShortcut, nativeTheme } from 'electron'
 import type { Event, NativeImage } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -13,27 +17,23 @@ export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
-type WindowMode = 'panel' | 'capsule'
-
-const PANEL_BOUNDS = { width: 360, height: 184 }
-const CAPSULE_BOUNDS = { width: 300, height: 220 }
+// 窗口尺寸
+const PANEL_BOUNDS = { width: 360, height: 520 }
 
 const isMac = process.platform === 'darwin'
 let isQuitting = false
-let mode: WindowMode = 'capsule'
 const DEFAULT_HOTKEY = 'Ctrl+Y+E+S'
 
 let win: BrowserWindow | null = null
 let tray: Tray | null = null
 let trayBaseIcon: NativeImage | null = null
-let panelPosition = { x: 0, y: 20 }
 let registeredAccels: string[] = []
 let hotkeyProgress = 0
 let hotkeyTimer: NodeJS.Timeout | null = null
 let lastHotkeyRaw = DEFAULT_HOTKEY
 let parsedHotkey: HotkeyParseResult | null = null
-let shouldShowCapsuleOnRestore = false
 
+// 查找托盘图标
 function resolveTrayIcon() {
   const lookupRoots = [
     process.env.VITE_PUBLIC,
@@ -60,50 +60,60 @@ function resolveTrayIcon() {
   )
 }
 
-function capsulePosition() {
+// 计算弹出面板位置（托盘图标下方）
+function calculatePanelPosition() {
   const display = screen.getPrimaryDisplay()
   const { workArea } = display
-  const x = Math.floor(workArea.x + workArea.width - CAPSULE_BOUNDS.width - 12)
-  const y = isMac ? workArea.y + 28 : workArea.y + workArea.height - CAPSULE_BOUNDS.height - 32
-  return { x, y }
+  const trayBounds = tray?.getBounds()
+
+  if (isMac && trayBounds) {
+    // macOS: 居中于托盘图标下方
+    const x = Math.round(trayBounds.x + trayBounds.width / 2 - PANEL_BOUNDS.width / 2)
+    const y = trayBounds.y + trayBounds.height + 4
+    return {
+      x: Math.max(workArea.x, Math.min(x, workArea.x + workArea.width - PANEL_BOUNDS.width)),
+      y
+    }
+  } else {
+    // Windows: 右下角
+    return {
+      x: workArea.x + workArea.width - PANEL_BOUNDS.width - 12,
+      y: workArea.y + workArea.height - PANEL_BOUNDS.height - 48
+    }
+  }
 }
 
-function loadRenderer(targetMode: WindowMode) {
+// 加载渲染进程
+function loadRenderer() {
   if (!win) return
-  const hash = targetMode === 'capsule' ? '#/capsule' : ''
 
   if (VITE_DEV_SERVER_URL) {
-    win.loadURL(hash ? `${VITE_DEV_SERVER_URL}${hash}` : VITE_DEV_SERVER_URL)
+    win.loadURL(VITE_DEV_SERVER_URL)
   } else {
-    win.loadFile(path.join(RENDERER_DIST, 'index.html'), hash ? { hash: 'capsule' } : undefined)
+    win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
 }
 
+// 创建窗口
 function createWindow() {
-  const display = screen.getPrimaryDisplay()
-  const { width } = display.workAreaSize
-
-  panelPosition = {
-    x: Math.floor((width - PANEL_BOUNDS.width) / 2),
-    y: 20
-  }
-
-  const capsulePos = capsulePosition()
+  const position = calculatePanelPosition()
 
   win = new BrowserWindow({
-    width: CAPSULE_BOUNDS.width,
-    height: CAPSULE_BOUNDS.height,
-    x: capsulePos.x,
-    y: capsulePos.y,
+    width: PANEL_BOUNDS.width,
+    height: PANEL_BOUNDS.height,
+    x: position.x,
+    y: position.y,
     frame: false,
     transparent: true,
+    resizable: false,
+    movable: false,
     alwaysOnTop: true,
     skipTaskbar: true,
-    resizable: false,
-    movable: true,
     show: false,
     backgroundColor: '#00000000',
     titleBarStyle: 'hidden',
+    vibrancy: isMac ? 'popover' : undefined,
+    visualEffectState: 'active',
     icon: resolveTrayIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
@@ -113,101 +123,69 @@ function createWindow() {
     }
   })
 
+  // 点击外部自动隐藏
+  win.on('blur', () => {
+    win?.hide()
+  })
+
   win.on('close', (event: Event) => {
     if (!isQuitting) {
       event.preventDefault()
-      showCapsule()
-    }
-  })
-
-  win.on('minimize', () => {
-    shouldShowCapsuleOnRestore = true
-  })
-
-  win.on('restore', () => {
-    if (shouldShowCapsuleOnRestore) {
-      showCapsule()
-    }
-    shouldShowCapsuleOnRestore = false
-  })
-
-  win.on('moved', () => {
-    if (mode === 'panel' && win) {
-      const bounds = win.getBounds()
-      panelPosition = { x: bounds.x, y: bounds.y }
+      win?.hide()
     }
   })
 
   win.webContents.on('did-finish-load', () => {
-    if (mode === 'capsule') {
-      win?.showInactive?.()
-    } else {
-      win?.show()
-      win?.focus()
-    }
+    // 首次加载不自动显示
   })
 
-  loadRenderer('capsule')
+  loadRenderer()
 }
 
-function showCapsule() {
-  shouldShowCapsuleOnRestore = false
-  if (!win) return
-  mode = 'capsule'
-  win.setSkipTaskbar(true)
-  win.setResizable(false)
-  win.setAlwaysOnTop(true, 'screen-saver')
-  const { x, y } = capsulePosition()
-  win.setBounds({ width: CAPSULE_BOUNDS.width, height: CAPSULE_BOUNDS.height, x, y })
-  loadRenderer('capsule')
-  win.showInactive?.()
-  win.show()
+// 切换面板显示/隐藏
+function togglePanel() {
+  if (!win) {
+    createWindow()
+    return
+  }
+
+  if (win.isVisible()) {
+    win.hide()
+  } else {
+    // 重新计算位置
+    const position = calculatePanelPosition()
+    win.setBounds({ ...PANEL_BOUNDS, ...position })
+    win.show()
+    win.focus()
+  }
 }
 
-function showPanel() {
-  shouldShowCapsuleOnRestore = false
-  if (!win) return
-  mode = 'panel'
-  win.setSkipTaskbar(false)
-  win.setResizable(false)
-  win.setAlwaysOnTop(true, 'screen-saver')
-  win.setBounds({
-    width: PANEL_BOUNDS.width,
-    height: PANEL_BOUNDS.height,
-    x: panelPosition.x,
-    y: panelPosition.y
-  })
-  loadRenderer('panel')
-  win.show()
-  win.focus()
-}
-
+// 创建托盘
 function createTray() {
   trayBaseIcon = resolveTrayIcon()
   tray = new Tray(trayBaseIcon)
   tray.setToolTip('yesCode Status')
 
   const contextMenu = Menu.buildFromTemplate([
-    { label: '打开主面板', click: () => showPanel() },
-    { label: '显示余额胶囊', click: () => showCapsule() },
+    { label: '显示面板', click: () => togglePanel() },
+    { type: 'separator' },
+    { label: '刷新数据', click: () => win?.webContents.send('refresh') },
     { type: 'separator' },
     { label: '退出', click: () => app.quit() }
   ])
 
   tray.setContextMenu(contextMenu)
-  tray.on('click', () => {
-    if (mode === 'capsule') {
-      showPanel()
-    } else {
-      showCapsule()
-    }
-  })
+
+  // macOS: 左键点击切换面板
+  // Windows: 左键也点击切换
+  tray.on('click', () => togglePanel())
 
   if (isMac) {
     tray.setIgnoreDoubleClickEvents(true)
   }
 }
 
+// 更新 Windows 任务栏覆盖图标
 function updateOverlayIcon(total: number) {
   if (!win || process.platform !== 'win32') return
   const dollars = Math.max(0, Math.min(999, Math.round(total)))
@@ -221,6 +199,7 @@ function updateOverlayIcon(total: number) {
   win.setOverlayIcon(image.resize({ width: 26, height: 26 }), `余额 $${label}`)
 }
 
+// 更新托盘图标
 function updateTrayIcon(usage: number) {
   if (!tray) return
   if (!trayBaseIcon) {
@@ -236,6 +215,7 @@ function updateTrayIcon(usage: number) {
   tray.setImage(image.resize({ width: 32, height: 32 }))
 }
 
+// 快捷键相关
 function resetHotkeyProgress() {
   hotkeyProgress = 0
   if (hotkeyTimer) {
@@ -260,7 +240,7 @@ function handleHotkeyStage(stageIndex: number) {
     hotkeyProgress = 1
     if (parsedHotkey.sequence.length === 1) {
       resetHotkeyProgress()
-      showCapsule()
+      togglePanel()
       return
     }
     scheduleHotkeyReset()
@@ -271,7 +251,7 @@ function handleHotkeyStage(stageIndex: number) {
     hotkeyProgress += 1
     if (hotkeyProgress >= parsedHotkey.sequence.length) {
       resetHotkeyProgress()
-      showCapsule()
+      togglePanel()
       return
     }
     scheduleHotkeyReset()
@@ -317,45 +297,28 @@ function registerGlobalHotkey(raw: string) {
   return { success: true }
 }
 
+// IPC 处理
 ipcMain.handle('resize-window', (_event, height: number) => {
-  if (!win || mode !== 'panel') return
-  const bounds = win.getBounds()
-  win.setBounds({ ...bounds, height: Math.max(height, PANEL_BOUNDS.height) })
-})
-
-ipcMain.handle('move-window', (_event, x: number, y: number) => {
   if (!win) return
   const bounds = win.getBounds()
-  win.setBounds({ ...bounds, x, y })
-  if (mode === 'panel') {
-    panelPosition = { x, y }
-  }
-})
-
-ipcMain.handle('get-window-position', () => {
-  if (!win) return { x: 0, y: 0, width: 0, height: 0 }
-  return win.getBounds()
+  win.setBounds({ ...bounds, height: Math.max(height, 200) })
 })
 
 ipcMain.handle('quit-app', () => app.quit())
-ipcMain.handle('open-floating-window', () => showPanel())
-ipcMain.handle('toggle-taskbar-panel', () => (mode === 'capsule' ? showPanel() : showCapsule()))
-ipcMain.handle('minimize-window', () => {
-  if (!win) return
-  mode = 'panel'
-  win.setSkipTaskbar(false)
-  win.minimize()
-})
 ipcMain.handle('hide-window', () => win?.hide())
+ipcMain.handle('toggle-panel', () => togglePanel())
 
-ipcMain.handle('update-tray-tooltip', (_event, payload: { total: number; usage: number }) => {
+ipcMain.handle('update-tray-tooltip', (_event, payload: { total: number; usage: number; label?: string }) => {
   const totalValue = Number(payload?.total ?? 0)
   const usageValue = Number(payload?.usage ?? 0)
+  const label = typeof payload?.label === 'string' && payload.label.trim()
+    ? payload.label.trim()
+    : '余额'
   const totalString = totalValue.toFixed(2)
   const usageString = usageValue.toFixed(1)
-  tray?.setToolTip(`yesCode · $${totalString} · ${usageString}%`)
+  tray?.setToolTip(`yesCode · ${label} $${totalString} · ${usageString}%`)
   if (tray && typeof tray.setTitle === 'function' && process.platform === 'darwin') {
-    tray.setTitle(`$${totalString}`)
+    tray.setTitle(`$${totalString}`, { fontType: 'monospacedDigit' })
   }
   updateOverlayIcon(totalValue)
   updateTrayIcon(usageValue)
@@ -366,19 +329,25 @@ ipcMain.handle('set-global-hotkey', (_event, hotkey: string) => {
   return registerGlobalHotkey(target)
 })
 
+ipcMain.handle('set-theme', (_event, theme: 'light' | 'dark' | 'system') => {
+  nativeTheme.themeSource = theme
+})
+
+// 应用启动
 app.whenReady().then(() => {
-  createWindow()
   createTray()
-  showCapsule()
+  createWindow()
+
   const hotkeyResult = registerGlobalHotkey(lastHotkeyRaw)
   if (!hotkeyResult.success) {
     console.warn('Hotkey init failed:', hotkeyResult.error)
   }
 
+  // 显示器变化时重新计算位置
   screen.on('display-metrics-changed', () => {
-    if (mode === 'capsule') {
-      const pos = capsulePosition()
-      win?.setBounds({ width: CAPSULE_BOUNDS.width, height: CAPSULE_BOUNDS.height, ...pos })
+    if (win?.isVisible()) {
+      const position = calculatePanelPosition()
+      win.setBounds({ ...PANEL_BOUNDS, ...position })
     }
   })
 })
@@ -386,7 +355,6 @@ app.whenReady().then(() => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
-    showCapsule()
   }
 })
 

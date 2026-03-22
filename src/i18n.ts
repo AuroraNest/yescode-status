@@ -45,6 +45,24 @@ const messages = {
         payg_only: '仅按量'
       }
     },
+    team: {
+      title: '团队',
+      noTeam: '暂无团队',
+      noTeamDesc: '您当前未加入任何团队',
+      loading: '加载中...',
+      myQuota: '我的周限额',
+      teamOverview: '团队周限额',
+      quota: '周限额',
+      used: '本周已用',
+      remaining: '本周剩余',
+      totalQuota: '团队周限额',
+      contactAdmin: '周限额由团队 owner 配置',
+      role: {
+        owner: 'Owner',
+        admin: 'Admin',
+        member: 'Member'
+      }
+    },
     taskbar: {
       subscriptionUsed: '订阅已用',
       total: '总余额',
@@ -140,6 +158,24 @@ const messages = {
         title: 'Billing preference',
         subscription_first: 'Subscription first',
         payg_only: 'Pay-as-you-go only'
+      }
+    },
+    team: {
+      title: 'Team',
+      noTeam: 'No Team',
+      noTeamDesc: 'You are not a member of any team',
+      loading: 'Loading...',
+      myQuota: 'My Quota',
+      teamOverview: 'Team Overview',
+      quota: 'Quota',
+      used: 'Used',
+      remaining: 'Remaining',
+      totalQuota: 'Total Quota',
+      contactAdmin: 'Contact team admin to adjust quota',
+      role: {
+        owner: 'Owner',
+        admin: 'Admin',
+        member: 'Member'
       }
     },
     taskbar: {

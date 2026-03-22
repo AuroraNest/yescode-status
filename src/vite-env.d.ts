@@ -11,7 +11,7 @@ interface ElectronAPI {
   toggleTaskbarPanel?: () => Promise<void>
   minimizeWindow?: () => Promise<void>
   hideWindow?: () => Promise<void>
-  updateTrayTooltip?: (payload: { total: number; usage: number }) => Promise<void>
+  updateTrayTooltip?: (payload: { total: number; usage: number; label?: string }) => Promise<void>
   setGlobalHotkey?: (hotkey: string) => Promise<{ success: boolean; error?: string }>
 }
 // 2025年08月02日18时38分32秒claude结束操作以上代码

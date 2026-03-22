@@ -7,7 +7,8 @@
   "author": "李先生",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc && vite build && electron-builder",
+    "build": "node scripts/package-local.mjs",
+    "build:install": "npm run build && ./scripts/install-to-applications.sh",
     "preview": "vite preview",
     "status": "node scripts/yescode-status.mjs"
   },
