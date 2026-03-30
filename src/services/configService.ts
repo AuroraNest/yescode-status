@@ -10,6 +10,7 @@ export const DEFAULT_COLLAPSED_METRICS: CollapsedMetric[] = ['usage', 'subscript
 export const DEFAULT_REFRESH_INTERVAL_SECONDS = 60
 export const DEFAULT_RPM_REFRESH_INTERVAL_SECONDS = 15
 export const MIN_REFRESH_INTERVAL_SECONDS = 10
+export const MIN_RPM_REFRESH_INTERVAL_SECONDS = 1
 export const MAX_REFRESH_INTERVAL_SECONDS = 3600
 export const DEFAULT_TEAM_SECTION_ORDER: TeamSectionId[] = ['memberQuota', 'teamQuota', 'rpm', 'team']
 const COLLAPSED_POOL: CollapsedMetric[] = ['usage', 'subscription', 'payg', 'weekly_limit', 'weekly_remaining', 'total']
@@ -82,8 +83,8 @@ export class ConfigService {
     } catch (error) {
       console.error('加载配置失败:', error)
     } finally {
-    this.isConfigured.value = !!this.config.apiToken?.trim()
-  }
+      this.isConfigured.value = !!this.config.apiToken?.trim()
+    }
   }
 
   private loadPreferences() {
@@ -97,7 +98,11 @@ export class ConfigService {
         this.preferences.hotkey = DEFAULT_HOTKEY
       }
       this.preferences.refreshIntervalSeconds = this.sanitizeRefreshInterval(this.preferences.refreshIntervalSeconds)
-      this.preferences.rpmRefreshIntervalSeconds = this.sanitizeRefreshInterval(this.preferences.rpmRefreshIntervalSeconds, DEFAULT_RPM_REFRESH_INTERVAL_SECONDS)
+      this.preferences.rpmRefreshIntervalSeconds = this.sanitizeRefreshInterval(
+        this.preferences.rpmRefreshIntervalSeconds,
+        DEFAULT_RPM_REFRESH_INTERVAL_SECONDS,
+        MIN_RPM_REFRESH_INTERVAL_SECONDS
+      )
       this.preferences.teamSectionOrder = this.sanitizeTeamSectionOrder(this.preferences.teamSectionOrder)
       this.preferences.collapsedMetrics = this.sanitizeCollapsedMetrics(this.preferences.collapsedMetrics)
     } catch (error) {
@@ -128,7 +133,11 @@ export class ConfigService {
     }
     this.preferences.hotkey = this.preferences.hotkey.trim()
     this.preferences.refreshIntervalSeconds = this.sanitizeRefreshInterval(this.preferences.refreshIntervalSeconds)
-    this.preferences.rpmRefreshIntervalSeconds = this.sanitizeRefreshInterval(this.preferences.rpmRefreshIntervalSeconds, DEFAULT_RPM_REFRESH_INTERVAL_SECONDS)
+    this.preferences.rpmRefreshIntervalSeconds = this.sanitizeRefreshInterval(
+      this.preferences.rpmRefreshIntervalSeconds,
+      DEFAULT_RPM_REFRESH_INTERVAL_SECONDS,
+      MIN_RPM_REFRESH_INTERVAL_SECONDS
+    )
     this.preferences.teamSectionOrder = this.sanitizeTeamSectionOrder(this.preferences.teamSectionOrder)
     this.preferences.collapsedMetrics = this.sanitizeCollapsedMetrics(this.preferences.collapsedMetrics)
     localStorage.setItem(PREF_KEY, JSON.stringify(this.preferences))
@@ -163,12 +172,16 @@ export class ConfigService {
     this.isConfigured.value = false
   }
 
-  private sanitizeRefreshInterval(input?: unknown, fallback = DEFAULT_REFRESH_INTERVAL_SECONDS): number {
+  private sanitizeRefreshInterval(
+    input?: unknown,
+    fallback = DEFAULT_REFRESH_INTERVAL_SECONDS,
+    min = MIN_REFRESH_INTERVAL_SECONDS
+  ): number {
     const numeric = Number(input)
     if (!Number.isFinite(numeric)) {
       return fallback
     }
-    return Math.min(MAX_REFRESH_INTERVAL_SECONDS, Math.max(MIN_REFRESH_INTERVAL_SECONDS, Math.round(numeric)))
+    return Math.min(MAX_REFRESH_INTERVAL_SECONDS, Math.max(min, Math.round(numeric)))
   }
 
   private sanitizeTeamSectionOrder(input?: unknown): TeamSectionId[] {

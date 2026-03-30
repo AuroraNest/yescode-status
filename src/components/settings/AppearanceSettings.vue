@@ -8,7 +8,8 @@ import {
   DEFAULT_REFRESH_INTERVAL_SECONDS,
   DEFAULT_RPM_REFRESH_INTERVAL_SECONDS,
   MAX_REFRESH_INTERVAL_SECONDS,
-  MIN_REFRESH_INTERVAL_SECONDS
+  MIN_REFRESH_INTERVAL_SECONDS,
+  MIN_RPM_REFRESH_INTERVAL_SECONDS
 } from '../../services/configService'
 import type { Theme, Language } from '../../types'
 import { SegmentedControl } from '../core'
@@ -34,7 +35,7 @@ const refreshHint = computed(() => {
 })
 
 const rpmRefreshHint = computed(() => {
-  return `RPM 卡片会按这个间隔单独刷新，同时保留卡片里的手动刷新按钮。`
+  return `支持 ${MIN_RPM_REFRESH_INTERVAL_SECONDS}-${MAX_REFRESH_INTERVAL_SECONDS} 秒，RPM 卡片会按这个间隔单独刷新，同时保留卡片里的手动刷新按钮。`
 })
 
 function updateTheme(value: string) {
@@ -61,7 +62,7 @@ function saveRefreshInterval() {
 function saveRpmRefreshInterval() {
   const numeric = Number(rpmRefreshIntervalSeconds.value)
   const normalized = Number.isFinite(numeric)
-    ? Math.min(MAX_REFRESH_INTERVAL_SECONDS, Math.max(MIN_REFRESH_INTERVAL_SECONDS, Math.round(numeric)))
+    ? Math.min(MAX_REFRESH_INTERVAL_SECONDS, Math.max(MIN_RPM_REFRESH_INTERVAL_SECONDS, Math.round(numeric)))
     : DEFAULT_RPM_REFRESH_INTERVAL_SECONDS
 
   rpmRefreshIntervalSeconds.value = normalized
@@ -130,7 +131,7 @@ watch(() => configService.preferences, prefs => {
           v-model="rpmRefreshIntervalSeconds"
           type="number"
           class="refresh-input"
-          :min="MIN_REFRESH_INTERVAL_SECONDS"
+          :min="MIN_RPM_REFRESH_INTERVAL_SECONDS"
           :max="MAX_REFRESH_INTERVAL_SECONDS"
           @change="saveRpmRefreshInterval"
           @blur="saveRpmRefreshInterval"
