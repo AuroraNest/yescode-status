@@ -9,6 +9,11 @@ import ProgressBar from '../core/ProgressBar.vue'
 
 const props = defineProps<{
   snapshot: StatusSnapshot | null
+  rateLimit: StatusSnapshot['rateLimit']
+  rateLimitLastUpdated: Date | null
+  isRateLimitRefreshing: boolean
+  rpmRefreshIntervalSeconds: number
+  rateLimitError?: string
   usagePercentage: number
   weeklyPercentage: number
   healthLevel: HealthLevel
@@ -18,6 +23,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'updatePreference', value: BalancePreference): void
+  (e: 'refreshRateLimit'): void
 }>()
 
 const subscriptionBalance = computed(() => {
@@ -51,11 +57,64 @@ const usedToday = computed(() => {
   return Math.max(0, limit - remaining)
 })
 
+const rateLimit = computed(() => props.rateLimit ?? null)
+
+const rpmUsagePercentage = computed(() => {
+  const limit = rateLimit.value?.rpm_limit ?? 0
+  const current = rateLimit.value?.current_rate ?? 0
+  if (limit <= 0) return 0
+  return Math.min(100, (current / limit) * 100)
+})
+
+const rpmValue = computed(() => {
+  if (!rateLimit.value) return '---'
+  return `${rateLimit.value.current_rate} / ${rateLimit.value.rpm_limit} RPM`
+})
+
+const rpmMeta = computed(() => {
+  if (!rateLimit.value) return '---'
+  return `本分钟剩余 ${rateLimit.value.remaining}，窗口 ${rateLimit.value.window_seconds}s`
+})
+
+const rpmHint = computed(() => {
+  if (!rateLimit.value) return ''
+  if (rateLimit.value.using_default) {
+    return '正在使用默认限制'
+  }
+  if (rateLimit.value.custom_limit_enabled) {
+    return `已启用自定义限制 ${rateLimit.value.custom_rpm} RPM`
+  }
+  return '当前为非默认限制'
+})
+
+const rpmUpdatedAt = computed(() => {
+  if (!props.rateLimitLastUpdated) return '---'
+  return props.rateLimitLastUpdated.toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
+})
+
+const rpmStatusText = computed(() => {
+  if (props.rateLimitError && !rateLimit.value) {
+    return props.rateLimitError
+  }
+  if (!rateLimit.value) {
+    return '暂未获取到 RPM 数据'
+  }
+  return rpmHint.value
+})
+
 function togglePreference() {
   const newPref = props.balancePreference === 'subscription_first'
     ? 'payg_only'
     : 'subscription_first'
   emit('updatePreference', newPref)
+}
+
+function handleRefreshRateLimit() {
+  emit('refreshRateLimit')
 }
 
 const preferenceLabel = computed(() => {
@@ -102,6 +161,38 @@ const preferenceLabel = computed(() => {
       />
     </div>
 
+    <div class="weekly-usage">
+      <div class="weekly-header rpm-header">
+        <div>
+          <span class="weekly-title">当前 RPM</span>
+          <div class="rpm-subtitle">单独刷新 {{ rpmRefreshIntervalSeconds }} 秒</div>
+        </div>
+        <div class="rpm-actions">
+          <span class="weekly-values">{{ rpmValue }}</span>
+          <button
+            class="rpm-refresh-button"
+            type="button"
+            :disabled="isRateLimitRefreshing"
+            @click="handleRefreshRateLimit"
+          >
+            {{ isRateLimitRefreshing ? '刷新中' : '刷新 RPM' }}
+          </button>
+        </div>
+      </div>
+      <ProgressBar
+        :value="rpmUsagePercentage"
+        size="md"
+        show-label
+      />
+      <div class="rpm-meta">
+        <span>{{ rpmMeta }}</span>
+        <span>更新时间 {{ rpmUpdatedAt }}</span>
+      </div>
+      <div class="rpm-meta secondary">
+        <span>{{ rpmStatusText }}</span>
+      </div>
+    </div>
+
     <!-- 扣费模式 -->
     <div v-if="canUpdatePreference !== false" class="preference-section">
       <span class="preference-label">扣费模式</span>
@@ -142,6 +233,10 @@ const preferenceLabel = computed(() => {
   margin-bottom: var(--space-2);
 }
 
+.rpm-header {
+  align-items: flex-start;
+}
+
 .weekly-title {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
@@ -155,6 +250,54 @@ const preferenceLabel = computed(() => {
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
   font-family: var(--font-mono);
+}
+
+.rpm-subtitle {
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.rpm-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.rpm-refresh-button {
+  border: 0.5px solid var(--color-border);
+  background: var(--color-fill-secondary);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.rpm-refresh-button:hover:not(:disabled) {
+  background: var(--color-fill-hover);
+  color: var(--color-text-primary);
+}
+
+.rpm-refresh-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.rpm-meta {
+  margin-top: var(--space-2);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.rpm-meta.secondary {
+  justify-content: flex-start;
+  color: var(--color-text-tertiary);
 }
 
 .preference-section {

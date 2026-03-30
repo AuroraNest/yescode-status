@@ -36,9 +36,20 @@ export interface BalanceSnapshot {
   weekly_spent_balance: number
 }
 
+export interface UserRateLimitSnapshot {
+  current_rate: number
+  custom_limit_enabled: boolean
+  custom_rpm: number
+  remaining: number
+  rpm_limit: number
+  using_default: boolean
+  window_seconds: number
+}
+
 export interface StatusSnapshot {
   profile: UserProfile
   balance: BalanceSnapshot
+  rateLimit: UserRateLimitSnapshot | null
 }
 
 export type BalancePreference = 'subscription_first' | 'payg_only'

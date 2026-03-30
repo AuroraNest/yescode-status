@@ -3,7 +3,7 @@
  * 主面板组件 - 整合用户头部、视图切换、内容区
  */
 import { ref, computed, watch } from 'vue'
-import type { ViewMode, StatusSnapshot, TeamSnapshot, BalancePreference, HealthLevel, TokenMode } from '../../types'
+import type { ViewMode, StatusSnapshot, TeamSnapshot, BalancePreference, HealthLevel, TokenMode, UserRateLimitSnapshot } from '../../types'
 import { AppHeader, SegmentedControl } from '../core'
 import UserHeader from './UserHeader.vue'
 import PersonalView from './PersonalView.vue'
@@ -18,6 +18,11 @@ const props = defineProps<{
   healthLevel: HealthLevel
   balancePreference: BalancePreference
   lastUpdated: Date | null
+  rateLimit: UserRateLimitSnapshot | null
+  rateLimitLastUpdated: Date | null
+  isRateLimitRefreshing: boolean
+  rpmRefreshIntervalSeconds: number
+  rateLimitError?: string
   isRefreshing: boolean
   loading: boolean
   tokenMode: TokenMode
@@ -31,6 +36,7 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'settings'): void
   (e: 'refresh'): void
+  (e: 'refreshRateLimit'): void
   (e: 'updatePreference', value: BalancePreference): void
 }>()
 
@@ -71,11 +77,15 @@ watch(
 
 // 总余额
 const totalBalance = computed(() => {
-  if (props.tokenMode === 'team') {
+  if (viewMode.value === 'team') {
     return props.teamSnapshot?.metrics?.member.remaining ?? 0
   }
   return props.snapshot?.balance.total_balance ?? 0
 })
+
+const balanceLabel = computed(() => (
+  viewMode.value === 'team' ? '我的本周剩余' : 'Total Balance'
+))
 
 // 关闭面板
 function handleClose() {
@@ -90,6 +100,10 @@ function handleSettings() {
 // 刷新数据
 function handleRefresh() {
   emit('refresh')
+}
+
+function handleRefreshRateLimit() {
+  emit('refreshRateLimit')
 }
 
 // 更新扣费偏好
@@ -112,11 +126,11 @@ function handleUpdatePreference(value: BalancePreference) {
       :profile="snapshot?.profile ?? null"
       :total-balance="totalBalance"
       :loading="loading"
-      :mode="tokenMode"
+      :mode="viewMode === 'team' ? 'team' : tokenMode"
       :team-name="teamSnapshot?.info?.name"
       :team-plan="teamSnapshot?.info?.planName"
       :team-role="teamSnapshot?.info?.role"
-      :balance-label="tokenMode === 'team' ? '我的本周剩余' : 'Total Balance'"
+      :balance-label="balanceLabel"
     />
 
     <!-- 视图切换 -->
@@ -134,18 +148,30 @@ function handleUpdatePreference(value: BalancePreference) {
         <PersonalView
           v-if="viewMode === 'personal'"
           :snapshot="snapshot"
+          :rate-limit="rateLimit"
+          :rate-limit-last-updated="rateLimitLastUpdated"
+          :is-rate-limit-refreshing="isRateLimitRefreshing"
+          :rpm-refresh-interval-seconds="rpmRefreshIntervalSeconds"
+          :rate-limit-error="rateLimitError"
           :usage-percentage="usagePercentage"
           :weekly-percentage="weeklyPercentage"
           :health-level="healthLevel"
           :balance-preference="balancePreference"
           :can-update-preference="canUpdatePreference"
+          @refresh-rate-limit="handleRefreshRateLimit"
           @update-preference="handleUpdatePreference"
         />
         <TeamView
           v-else
           :team-snapshot="teamSnapshot"
+          :rate-limit="rateLimit"
+          :rate-limit-last-updated="rateLimitLastUpdated"
+          :is-rate-limit-refreshing="isRateLimitRefreshing"
+          :rpm-refresh-interval-seconds="rpmRefreshIntervalSeconds"
+          :rate-limit-error="rateLimitError"
           :loading="loading"
           :error="teamError"
+          @refresh-rate-limit="handleRefreshRateLimit"
         />
       </Transition>
     </div>

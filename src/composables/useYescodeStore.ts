@@ -32,11 +32,21 @@ const teamState = reactive({
   lastUpdated: null as Date | null
 })
 
+// RPM 状态
+const rateLimitState = reactive({
+  loading: false,
+  error: '',
+  snapshot: null as StatusSnapshot['rateLimit'],
+  lastUpdated: null as Date | null
+})
+
 const viewMode = ref<ViewMode>('personal')
 
 // 刷新状态
 let refreshTimer: number | undefined
+let rateLimitRefreshTimer: number | undefined
 const isRefreshing = ref(false)
+const isRateLimitRefreshing = ref(false)
 
 // 计算属性
 const dailyLimit = computed(() =>
@@ -77,14 +87,22 @@ const balancePreference = computed<BalancePreference>(() => {
 const hasTeam = computed(() => teamState.snapshot?.hasTeam ?? false)
 const tokenMode = computed<TokenMode>(() => detectTokenMode(configService.config.apiToken))
 const canUsePersonalMode = computed(() => configService.isConfigured.value && tokenMode.value === 'personal')
-const canUseTeamMode = computed(() => configService.isConfigured.value && tokenMode.value === 'team')
+const canUseTeamMode = computed(() => configService.isConfigured.value && tokenMode.value !== 'unknown')
 const activeMode = computed<TokenMode>(() => {
   if (canUsePersonalMode.value) return 'personal'
   if (canUseTeamMode.value) return 'team'
   return 'unknown'
 })
 const canShowPersonal = computed(() => canUsePersonalMode.value)
-const canShowTeam = computed(() => canUseTeamMode.value)
+const canShowTeam = computed(() => {
+  if (!canUseTeamMode.value) {
+    return false
+  }
+  if (tokenMode.value === 'team') {
+    return true
+  }
+  return hasTeam.value
+})
 const canUpdatePreference = computed(() => activeMode.value === 'personal')
 const lastUpdated = computed(() => {
   if (activeMode.value === 'team') {
@@ -135,6 +153,17 @@ function resetTeamState() {
   emitNativeStatus()
 }
 
+function resetRateLimitState() {
+  rateLimitState.loading = false
+  rateLimitState.error = ''
+  rateLimitState.snapshot = null
+  rateLimitState.lastUpdated = null
+
+  if (state.snapshot) {
+    state.snapshot.rateLimit = null
+  }
+}
+
 async function refreshSnapshot(force = false) {
   if (!canUsePersonalMode.value) {
     resetPersonalState()
@@ -151,6 +180,11 @@ async function refreshSnapshot(force = false) {
     const token = configService.config.apiToken
     const snapshot = await apiService.fetchSnapshot(token)
     state.snapshot = snapshot
+    if (snapshot.rateLimit) {
+      rateLimitState.snapshot = snapshot.rateLimit
+      rateLimitState.lastUpdated = new Date()
+      rateLimitState.error = ''
+    }
     state.lastUpdated = new Date()
     state.error = ''
     state.status = 'ready'
@@ -161,6 +195,38 @@ async function refreshSnapshot(force = false) {
     emitNativeStatus()
   } finally {
     isRefreshing.value = false
+  }
+}
+
+async function refreshRateLimit(_force = false) {
+  if (!canUseTeamMode.value) {
+    resetRateLimitState()
+    return
+  }
+
+  if (rateLimitState.snapshot) {
+    isRateLimitRefreshing.value = true
+  } else {
+    rateLimitState.loading = true
+  }
+
+  try {
+    const token = configService.config.apiToken
+    const snapshot = await apiService.fetchRateLimit(token)
+    rateLimitState.snapshot = snapshot
+    rateLimitState.lastUpdated = new Date()
+    rateLimitState.error = ''
+    if (state.snapshot) {
+      state.snapshot.rateLimit = snapshot
+    }
+  } catch (error) {
+    rateLimitState.error = error instanceof Error ? error.message : '获取 RPM 失败'
+    if (!rateLimitState.snapshot && state.snapshot) {
+      state.snapshot.rateLimit = null
+    }
+  } finally {
+    rateLimitState.loading = false
+    isRateLimitRefreshing.value = false
   }
 }
 
@@ -194,25 +260,32 @@ async function refreshAll(force = false) {
   if (!configService.isConfigured.value) {
     resetPersonalState()
     resetTeamState()
+    resetRateLimitState()
     return
   }
 
   if (activeMode.value === 'personal') {
-    resetTeamState()
     viewMode.value = 'personal'
-    await refreshSnapshot(force)
+    await Promise.allSettled([
+      refreshSnapshot(force),
+      refreshTeamSnapshot()
+    ])
     return
   }
 
   if (activeMode.value === 'team') {
     resetPersonalState()
     viewMode.value = 'team'
-    await refreshTeamSnapshot()
+    await Promise.allSettled([
+      refreshTeamSnapshot(),
+      refreshRateLimit(force)
+    ])
     return
   }
 
   resetPersonalState()
   resetTeamState()
+  resetRateLimitState()
 }
 
 // 自动刷新
@@ -224,10 +297,25 @@ function startAutoRefresh(intervalMs = 60_000) {
   refreshTimer = window.setInterval(() => refreshAll(), intervalMs)
 }
 
+function startRateLimitAutoRefresh(intervalMs = 15_000) {
+  if (rateLimitRefreshTimer) {
+    window.clearInterval(rateLimitRefreshTimer)
+    rateLimitRefreshTimer = undefined
+  }
+  rateLimitRefreshTimer = window.setInterval(() => refreshRateLimit(), intervalMs)
+}
+
 function stopAutoRefresh() {
   if (refreshTimer) {
     window.clearInterval(refreshTimer)
     refreshTimer = undefined
+  }
+}
+
+function stopRateLimitAutoRefresh() {
+  if (rateLimitRefreshTimer) {
+    window.clearInterval(rateLimitRefreshTimer)
+    rateLimitRefreshTimer = undefined
   }
 }
 
@@ -275,6 +363,10 @@ export function useYescodeStore() {
     hasTeam,
     lastUpdated,
 
+    // RPM 状态
+    rateLimitState,
+    isRateLimitRefreshing,
+
     // 视图模式
     viewMode,
     switchView,
@@ -287,10 +379,13 @@ export function useYescodeStore() {
     canUpdatePreference,
     // 方法
     refreshSnapshot,
+    refreshRateLimit,
     refreshTeamSnapshot,
     refreshAll,
     startAutoRefresh,
+    startRateLimitAutoRefresh,
     stopAutoRefresh,
+    stopRateLimitAutoRefresh,
     updatePreference
   }
 }

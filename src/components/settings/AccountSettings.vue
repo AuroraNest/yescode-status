@@ -2,7 +2,7 @@
 /**
  * 账户设置页面
  */
-import { ref, computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { configService } from '../../services/configService'
 import { apiService } from '../../services/apiService'
 import { teamApiService } from '../../services/teamApiService'
@@ -14,29 +14,92 @@ const emit = defineEmits<{
   (e: 'saved'): void
 }>()
 
-// Token 输入
+const loginUsername = ref(configService.config.loginUsername || '')
+const password = ref('')
+const showPassword = ref(false)
+const loginError = ref('')
+const loginSuccess = ref(false)
+const isLoggingIn = ref(false)
+
 const token = ref(configService.config.apiToken || '')
 const showToken = ref(false)
 const tokenError = ref('')
 const saveSuccess = ref(false)
 
-// 连接测试
 const isTesting = ref(false)
 const testResult = ref<'success' | 'error' | null>(null)
 const testMessage = ref('')
 
-// 扣费模式
 const preference = ref<BalancePreference>('subscription_first')
 const tokenMode = computed<TokenMode>(() => detectTokenMode(token.value))
 const showPreferenceControls = computed(() => tokenMode.value === 'personal')
+const hasSavedAuth = computed(() => !!configService.config.apiToken.trim())
 
-// Token 验证
 const isTokenValid = computed(() => {
   if (!token.value.trim()) return false
   return token.value.trim().length >= 10
 })
 
-// 保存 Token
+const canLogin = computed(() => (
+  !!loginUsername.value.trim() &&
+  !!password.value.trim() &&
+  !isLoggingIn.value
+))
+
+const savedAuthLabel = computed(() => {
+  if (!hasSavedAuth.value) return '未保存鉴权'
+  return configService.config.authToken?.trim() ? '账号登录鉴权已保存' : '手动 API Key 已保存'
+})
+
+function clearMessages() {
+  loginError.value = ''
+  loginSuccess.value = false
+  tokenError.value = ''
+  saveSuccess.value = false
+  testResult.value = null
+  testMessage.value = ''
+}
+
+async function loginWithPassword() {
+  clearMessages()
+
+  if (!loginUsername.value.trim() || !password.value.trim()) {
+    loginError.value = '请输入账户名和密码'
+    return
+  }
+
+  isLoggingIn.value = true
+
+  try {
+    const response = await apiService.login(loginUsername.value.trim(), password.value)
+    const apiKey = response.api_key || response.user.api_key
+
+    if (!apiKey?.trim()) {
+      throw new Error('登录成功，但响应里没有可用的 API Key')
+    }
+
+    configService.updateConfig({
+      loginUsername: loginUsername.value.trim(),
+      authToken: response.token,
+      apiToken: apiKey.trim()
+    })
+
+    token.value = apiKey.trim()
+    password.value = ''
+    preference.value = response.user.balance_preference || preference.value
+    loginSuccess.value = true
+    testResult.value = 'success'
+    testMessage.value = `登录成功，已保存 ${response.user.username || response.user.email} 的鉴权信息`
+    emit('saved')
+  } catch (error) {
+    loginError.value = error instanceof Error ? error.message : '登录失败'
+    testResult.value = 'error'
+    testMessage.value = loginError.value
+  } finally {
+    isLoggingIn.value = false
+  }
+}
+
 async function saveToken() {
   saveSuccess.value = false
 
@@ -51,28 +114,30 @@ async function saveToken() {
   }
 
   tokenError.value = ''
-  configService.updateConfig({ apiToken: token.value.trim() })
+  configService.updateConfig({
+    apiToken: token.value.trim(),
+    authToken: '',
+    loginUsername: loginUsername.value.trim()
+  })
   saveSuccess.value = true
+  emit('saved')
 
-  // 3秒后清除成功提示
   setTimeout(() => {
     saveSuccess.value = false
   }, 3000)
-
-  emit('saved')
 }
 
-// 清空 Token
-function clearToken() {
+function clearCredentials() {
   token.value = ''
-  configService.updateConfig({ apiToken: '' })
-  tokenError.value = ''
-  testResult.value = null
-  testMessage.value = ''
-  saveSuccess.value = false
+  password.value = ''
+  configService.updateConfig({
+    apiToken: '',
+    authToken: '',
+    loginUsername: loginUsername.value.trim()
+  })
+  clearMessages()
 }
 
-// 测试连接
 async function testConnection() {
   if (!isTokenValid.value) {
     tokenError.value = 'Token 格式错误'
@@ -98,6 +163,7 @@ async function testConnection() {
       const profile = await apiService.fetchProfile(trimmed)
       testResult.value = 'success'
       testMessage.value = `连接成功！账户: ${profile.username || profile.email}`
+      preference.value = profile.balance_preference
     }
   } catch (error) {
     testResult.value = 'error'
@@ -107,7 +173,6 @@ async function testConnection() {
   }
 }
 
-// 更新扣费模式
 async function updatePreference(value: string) {
   const pref = value as BalancePreference
   preference.value = pref
@@ -120,9 +185,12 @@ async function updatePreference(value: string) {
   }
 }
 
-// 加载初始值
 watch(() => configService.config.apiToken, (newToken) => {
   token.value = newToken || ''
+}, { immediate: true })
+
+watch(() => configService.config.loginUsername, (username) => {
+  loginUsername.value = username || ''
 }, { immediate: true })
 
 watch(tokenMode, (mode) => {
@@ -134,15 +202,67 @@ watch(tokenMode, (mode) => {
 
 <template>
   <div class="account-settings">
-    <!-- API Token -->
     <div class="setting-section">
-      <label class="setting-label">API Token</label>
+      <label class="setting-label">账号密码登录</label>
+      <div class="stack-fields">
+        <input
+          v-model="loginUsername"
+          class="text-input"
+          placeholder="输入账户名或邮箱"
+          autocomplete="username"
+          @focus="loginError = ''"
+        />
+        <div class="token-input-wrapper">
+          <input
+            v-model="password"
+            :type="showPassword ? 'text' : 'password'"
+            class="text-input"
+            placeholder="输入密码"
+            autocomplete="current-password"
+            @focus="loginError = ''"
+          />
+          <button class="toggle-btn" @click="showPassword = !showPassword">
+            {{ showPassword ? '隐藏' : '显示' }}
+          </button>
+        </div>
+      </div>
+      <p v-if="loginError" class="error-text">{{ loginError }}</p>
+      <p v-if="loginSuccess" class="success-text">✓ 登录成功，鉴权已保存到本地</p>
+      <p class="help-text">只需要登录一次，后续接口会自动复用已保存的鉴权信息。</p>
+      <div class="action-buttons">
+        <button
+          class="btn btn-primary"
+          :disabled="!canLogin"
+          @click="loginWithPassword"
+        >
+          {{ isLoggingIn ? '登录中...' : '登录并保存鉴权' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="setting-section status-card">
+      <label class="setting-label">当前状态</label>
+      <div class="status-line">
+        <span class="status-badge" :class="{ active: hasSavedAuth }">{{ savedAuthLabel }}</span>
+        <button
+          v-if="hasSavedAuth"
+          class="ghost-btn"
+          @click="clearCredentials"
+        >
+          清空鉴权
+        </button>
+      </div>
+      <p class="help-text">登录成功后会自动保存返回的 `token` 和 `api_key`，后续个人、团队和 RPM 接口统一复用。</p>
+    </div>
+
+    <div class="setting-section">
+      <label class="setting-label">API Key（兼容备用）</label>
       <div class="token-input-wrapper">
         <input
           v-model="token"
           :type="showToken ? 'text' : 'password'"
           class="token-input"
-          placeholder="输入您的 API Token"
+          placeholder="需要时可手动输入 API Key"
           spellcheck="false"
           autocomplete="off"
           @focus="tokenError = ''"
@@ -151,7 +271,7 @@ watch(tokenMode, (mode) => {
           v-if="token"
           class="clear-btn"
           title="清空"
-          @click="clearToken"
+          @click="clearCredentials"
         >
           ✕
         </button>
@@ -163,13 +283,28 @@ watch(tokenMode, (mode) => {
         </button>
       </div>
       <p v-if="tokenError" class="error-text">{{ tokenError }}</p>
-      <p v-if="saveSuccess" class="success-text">✓ 保存成功</p>
+      <p v-if="saveSuccess" class="success-text">✓ API Key 保存成功</p>
       <p class="help-text">
-        {{ tokenMode === 'team' ? '当前为团队 Token，将只查询团队额度与用量' : '从 yesCode 网站获取您的 API Token' }}
+        {{ tokenMode === 'team' ? '当前为团队 Token，将只查询团队额度与用量。' : '如果不想走登录流程，也可以直接手动保存 API Key。' }}
       </p>
+      <div class="action-buttons">
+        <button
+          class="btn btn-secondary"
+          :disabled="isTesting || !isTokenValid"
+          @click="testConnection"
+        >
+          {{ isTesting ? '测试中...' : tokenMode === 'team' ? '测试团队连接' : '测试连接' }}
+        </button>
+        <button
+          class="btn btn-secondary"
+          :disabled="!token.trim()"
+          @click="saveToken"
+        >
+          保存 API Key
+        </button>
+      </div>
     </div>
 
-    <!-- 扣费模式 -->
     <div class="setting-section" v-if="showPreferenceControls">
       <label class="setting-label">扣费模式</label>
       <SegmentedControl
@@ -181,29 +316,10 @@ watch(tokenMode, (mode) => {
         @update:model-value="updatePreference"
       />
       <p class="help-text">
-        {{ preference === 'subscription_first' ? '优先使用订阅额度，不足时使用按量' : '只使用按量付费额度' }}
+        {{ preference === 'subscription_first' ? '优先使用订阅额度，不足时使用按量。' : '只使用按量付费额度。' }}
       </p>
     </div>
 
-    <!-- 操作按钮 -->
-    <div class="action-buttons">
-      <button
-        class="btn btn-secondary"
-        :disabled="isTesting || !isTokenValid"
-        @click="testConnection"
-      >
-        {{ isTesting ? '测试中...' : tokenMode === 'team' ? '测试团队连接' : '测试连接' }}
-      </button>
-      <button
-        class="btn btn-primary"
-        :disabled="!token.trim()"
-        @click="saveToken"
-      >
-        保存
-      </button>
-    </div>
-
-    <!-- 测试结果 -->
     <div v-if="testResult" class="test-result" :class="testResult">
       {{ testMessage }}
     </div>
@@ -229,32 +345,44 @@ watch(tokenMode, (mode) => {
   color: var(--color-text-primary);
 }
 
+.stack-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 .token-input-wrapper {
   display: flex;
   gap: var(--space-2);
 }
 
+.text-input,
 .token-input {
   flex: 1;
   padding: var(--space-2) var(--space-3);
   background: var(--color-fill-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
   font-size: var(--text-sm);
   color: var(--color-text-primary);
   outline: none;
   transition: border-color var(--transition-fast);
+}
+
+.token-input {
+  font-family: var(--font-mono);
   user-select: text;
   -webkit-user-select: text;
   cursor: text;
 }
 
+.text-input:focus,
 .token-input:focus {
   border-color: var(--color-accent);
 }
 
-.toggle-btn {
+.toggle-btn,
+.ghost-btn {
   padding: var(--space-2) var(--space-3);
   background: var(--color-fill-primary);
   border: none;
@@ -265,7 +393,8 @@ watch(tokenMode, (mode) => {
   transition: background var(--transition-fast);
 }
 
-.toggle-btn:hover {
+.toggle-btn:hover,
+.ghost-btn:hover {
   background: var(--color-fill-hover);
 }
 
@@ -291,6 +420,7 @@ watch(tokenMode, (mode) => {
 .help-text {
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
+  line-height: 1.5;
 }
 
 .error-text {
@@ -305,9 +435,38 @@ watch(tokenMode, (mode) => {
   font-weight: var(--font-medium);
 }
 
+.status-card {
+  padding: var(--space-3);
+  background: var(--color-bg-secondary);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.status-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  background: var(--color-fill-primary);
+}
+
+.status-badge.active {
+  color: var(--color-success);
+}
+
 .action-buttons {
   display: flex;
   gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .btn {

@@ -47,6 +47,9 @@ watch(
 
 const tokenValidation = computed(() => configService.validateApiToken(form.apiToken))
 const hotkeyValidation = computed(() => {
+  if (!form.hotkey.trim()) {
+    return { valid: true, message: '未设置，已禁用全局快捷键' }
+  }
   const parsed = parseHotkey(form.hotkey)
   if (!parsed.ok) {
     return { valid: false, message: parsed.error }
@@ -76,6 +79,7 @@ const save = async () => {
     hotkey: form.hotkey.trim(),
     collapsedMetrics: [...form.collapsedMetrics]
   })
+  await window.electronAPI?.setGlobalHotkey?.(form.hotkey.trim())
   if (form.preference !== balancePreference.value) {
     await updatePreference(form.preference)
   }
@@ -109,6 +113,10 @@ const testConnection = async () => {
 
 const restoreHotkey = () => {
   form.hotkey = DEFAULT_HOTKEY
+}
+
+const clearHotkey = () => {
+  form.hotkey = ''
 }
 
 const toggleCollapsedMetric = (option: CollapsedMetric) => {
@@ -249,6 +257,9 @@ const toggleCollapsedMetric = (option: CollapsedMetric) => {
               />
               <button class="ghost" type="button" @click="restoreHotkey">
                 {{ t('settings.hotkeyReset') }}
+              </button>
+              <button class="ghost" type="button" @click="clearHotkey">
+                清空
               </button>
             </div>
             <small :class="{ error: !hotkeyValidation.valid }">

@@ -2,7 +2,7 @@
 /**
  * 应用入口组件 - 新版 UI
  */
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useYescodeStore } from './composables/useYescodeStore'
 import { configService } from './services/configService'
 import { MainPanel } from './components/panels'
@@ -20,17 +20,53 @@ const currentPage = ref<AppPage>('main')
 onMounted(async () => {
   // 应用主题
   applyTheme()
+  await window.electronAPI?.setGlobalHotkey?.(configService.preferences.hotkey || '')
 
   // 初始加载
   if (configService.isConfigured.value) {
     await store.refreshAll(true)
-    store.startAutoRefresh(60_000)
+    store.startAutoRefresh(configService.preferences.refreshIntervalSeconds * 1000)
+    store.startRateLimitAutoRefresh(configService.preferences.rpmRefreshIntervalSeconds * 1000)
   }
 })
 
 onBeforeUnmount(() => {
   store.stopAutoRefresh()
+  store.stopRateLimitAutoRefresh()
 })
+
+watch(
+  () => configService.preferences.refreshIntervalSeconds,
+  intervalSeconds => {
+    if (!configService.isConfigured.value) {
+      return
+    }
+    store.startAutoRefresh(intervalSeconds * 1000)
+  }
+)
+
+watch(
+  () => configService.preferences.rpmRefreshIntervalSeconds,
+  intervalSeconds => {
+    if (!configService.isConfigured.value) {
+      return
+    }
+    store.startRateLimitAutoRefresh(intervalSeconds * 1000)
+  }
+)
+
+watch(
+  () => configService.isConfigured.value,
+  configured => {
+    if (!configured) {
+      store.stopAutoRefresh()
+      store.stopRateLimitAutoRefresh()
+      return
+    }
+    store.startAutoRefresh(configService.preferences.refreshIntervalSeconds * 1000)
+    store.startRateLimitAutoRefresh(configService.preferences.rpmRefreshIntervalSeconds * 1000)
+  }
+)
 
 // 应用主题
 function applyTheme() {
@@ -60,6 +96,10 @@ function handleBackToMain() {
   currentPage.value = 'main'
   // 刷新数据
   store.refreshAll(true)
+  if (configService.isConfigured.value) {
+    store.startAutoRefresh(configService.preferences.refreshIntervalSeconds * 1000)
+    store.startRateLimitAutoRefresh(configService.preferences.rpmRefreshIntervalSeconds * 1000)
+  }
 }
 
 // 刷新数据
@@ -95,6 +135,11 @@ const isLoading = computed(() => {
         :last-updated="store.lastUpdated.value"
         :is-refreshing="store.isRefreshing.value"
         :loading="isLoading"
+        :rate-limit="store.rateLimitState.snapshot"
+        :rate-limit-last-updated="store.rateLimitState.lastUpdated"
+        :is-rate-limit-refreshing="store.isRateLimitRefreshing.value"
+        :rpm-refresh-interval-seconds="configService.preferences.rpmRefreshIntervalSeconds"
+        :rate-limit-error="store.rateLimitState.error"
         :token-mode="store.activeMode.value"
         :can-show-personal="store.canShowPersonal.value"
         :can-show-team="store.canShowTeam.value"
@@ -103,6 +148,7 @@ const isLoading = computed(() => {
         @close="handleClose"
         @settings="handleOpenSettings"
         @refresh="handleRefresh"
+        @refresh-rate-limit="store.refreshRateLimit(true)"
         @update-preference="handleUpdatePreference"
       />
       <SettingsPanel

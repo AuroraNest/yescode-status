@@ -3,12 +3,10 @@
  * 快捷键设置页面
  */
 import { ref, watch, onMounted, onUnmounted } from 'vue'
-import { configService } from '../../services/configService'
-
-const DEFAULT_HOTKEY = 'Ctrl+Y+E+S'
+import { configService, DEFAULT_HOTKEY } from '../../services/configService'
 
 // 快捷键
-const hotkey = ref(DEFAULT_HOTKEY)
+const hotkey = ref(configService.preferences.hotkey || '')
 const isRecording = ref(false)
 const recordedKeys = ref<string[]>([])
 
@@ -82,17 +80,24 @@ function normalizeKey(e: KeyboardEvent): string | null {
 
 // 保存快捷键
 function saveHotkey() {
-  configService.updatePreferences({ hotkey: hotkey.value })
+  const nextHotkey = hotkey.value.trim()
+  hotkey.value = nextHotkey
+  configService.updatePreferences({ hotkey: nextHotkey })
 
   // 通知主进程更新快捷键
   if (window.electronAPI?.setGlobalHotkey) {
-    window.electronAPI.setGlobalHotkey(hotkey.value)
+    window.electronAPI.setGlobalHotkey(nextHotkey)
   }
 }
 
 // 重置默认
 function resetHotkey() {
   hotkey.value = DEFAULT_HOTKEY
+  saveHotkey()
+}
+
+function clearHotkey() {
+  hotkey.value = ''
   saveHotkey()
 }
 
@@ -109,7 +114,7 @@ onUnmounted(() => {
 
 // 加载初始值
 watch(() => configService.preferences.hotkey, (value) => {
-  hotkey.value = value || DEFAULT_HOTKEY
+  hotkey.value = value ?? ''
 }, { immediate: true })
 </script>
 
@@ -118,13 +123,19 @@ watch(() => configService.preferences.hotkey, (value) => {
     <div class="setting-section">
       <label class="setting-label">全局唤起快捷键</label>
       <p class="help-text">
-        按下快捷键可快速显示/隐藏面板
+        按下快捷键可快速显示/隐藏面板，留空则禁用
       </p>
 
       <div class="hotkey-display">
         <div class="hotkey-keys">
           <span
-            v-for="key in (isRecording ? recordedKeys : hotkey.split('+'))"
+            v-if="!isRecording && !hotkey"
+            class="empty-state"
+          >
+            未设置，已禁用全局唤醒
+          </span>
+          <span
+            v-for="key in (isRecording ? recordedKeys : hotkey.split('+').filter(Boolean))"
             :key="key"
             class="key-badge"
           >
@@ -156,12 +167,18 @@ watch(() => configService.preferences.hotkey, (value) => {
           >
             重置
           </button>
+          <button
+            class="btn btn-ghost"
+            @click="clearHotkey"
+          >
+            清空
+          </button>
         </div>
       </div>
     </div>
 
     <div class="tip">
-      💡 提示：支持最多 4 个按键的组合，如 Ctrl+Alt+Y
+      💡 提示：支持最多 4 个按键的组合；清空后表示关闭全局唤醒
     </div>
   </div>
 </template>
@@ -226,6 +243,11 @@ watch(() => configService.preferences.hotkey, (value) => {
   font-size: var(--text-sm);
   color: var(--color-text-tertiary);
   font-style: italic;
+}
+
+.empty-state {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
 }
 
 .hotkey-actions {

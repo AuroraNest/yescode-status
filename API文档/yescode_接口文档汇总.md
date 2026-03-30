@@ -61,8 +61,10 @@ User-Agent: yescode-status/2.0
 
 以下两个接口被当前项目真实调用，但在 `tab=api` 的 Swagger 规范中搜索 `balance` 时返回 `No operations defined in spec!`：
 
+- `POST /auth/login`
 - `GET /user/balance`
 - `PUT /user/balance-preference`
+- `GET /user/rate-limit`
 
 它们的说明见本文档末尾“项目实际使用但 Swagger 未列出接口”。
 
@@ -159,6 +161,8 @@ curl -X POST "https://co.yes.vg/api/v1/auth/logout" \
 - Base URL：`https://co.yes.vg/api/v1`
 - 是否鉴权：是
 - 必需请求头：`Authorization`、`X-API-Key`
+- 已确认链路：浏览器已登录时可先调用 `/auth/profile` 取回 `api_key`，再用该 key 请求本接口
+- 已确认可用链路：浏览器登录态先调 `GET /api/v1/auth/profile` 取得 `api_key`，再以 `Authorization: Bearer <api_key>` 和 `X-API-Key: <api_key>` 调用本接口
 
 ### 4. 请求参数
 #### 4.1 Path 参数
@@ -1294,6 +1298,75 @@ curl -X PUT "https://co.yes.vg/api/v1/user/balance-preference" \
 - Swagger 是否给出真实模型：当前 `tab=api` 未列出
 - 与当前项目关系：个人主页和设置页会调用
 
+## 5.3 Get user rate limit
+
+### 1. 基本信息
+- 标签：项目实际接口，未出现在当前 Swagger
+- 方法：`GET`
+- 路径：`/user/rate-limit`
+- 状态：已确认
+- 适用角色：已登录用户
+- 当前项目是否使用：是
+- 代码位置：`src/services/apiService.ts`
+
+### 2. 接口说明
+- 用途：获取当前用户 RPM 窗口的实时计数和当前生效限额。
+- 典型场景：个人主页和团队主页展示“当前 RPM”、“本分钟剩余请求”和当前限流模式。
+
+### 3. 请求要求
+- Base URL：`https://co.yes.vg/api/v1`
+- 是否鉴权：是
+- 必需请求头：`Authorization`、`X-API-Key`
+- 页面侧可行链路：已登录状态下先调用 `GET /auth/profile` 取得 `api_key`，再以 `Authorization: Bearer <api_key>` 和 `X-API-Key: <api_key>` 调用本接口
+
+### 4. 请求参数
+无
+
+### 5. 请求示例
+```bash
+curl -X GET "https://co.yes.vg/api/v1/user/rate-limit" \
+  -H "accept: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -H "X-API-Key: <token>"
+```
+
+### 6. 成功响应
+
+```json
+{
+  "current_rate": 0,
+  "custom_limit_enabled": false,
+  "custom_rpm": 1200,
+  "remaining": 50,
+  "rpm_limit": 50,
+  "using_default": true,
+  "window_seconds": 60
+}
+```
+
+### 7. 响应字段
+
+| 字段 | 类型 | 说明 | 来源 |
+|---|---|---|---|
+| `current_rate` | `number` | 当前 RPM 窗口内已使用请求数 | 页面实测 |
+| `custom_limit_enabled` | `boolean` | 是否启用自定义限流 | 页面实测 |
+| `custom_rpm` | `number` | 自定义 RPM 值 | 页面实测 |
+| `remaining` | `number` | 当前窗口剩余请求数 | 页面实测 |
+| `rpm_limit` | `number` | 当前生效的 RPM 上限 | 页面实测 |
+| `using_default` | `boolean` | 是否使用默认限流策略 | 页面实测 |
+| `window_seconds` | `number` | RPM 统计窗口秒数 | 页面实测 |
+
+### 8. 错误响应
+- `401 Unauthorized`
+- `403 Forbidden`
+
+### 9. 补充说明
+- Swagger 是否给出真实模型：当前 `tab=api` 未列出
+- 与当前项目关系：个人主页和团队主页都会优先用它展示真实 RPM，而不是团队限额配置
+- 页面登录态和 API Key 鉴权都可访问这个接口
+- 字段语义补充：`current_rate` 是当前 RPM 窗口内已使用请求数，不是并发线程数
+- 当前项目实现补充：RPM 已改成独立刷新周期，并提供单独的手动刷新按钮
+
 ## 6. 结论
 
 当前这套接口可以分成三类：
@@ -1302,6 +1375,7 @@ curl -X PUT "https://co.yes.vg/api/v1/user/balance-preference" \
    - `/auth/profile`
    - `/user/balance`
    - `/user/balance-preference`
+   - `/user/rate-limit`
    - `/user/team`
    - `/user/team/usage`
 

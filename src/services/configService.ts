@@ -4,12 +4,21 @@ const CONFIG_KEY = 'yescode-status-config'
 const PREF_KEY = 'yescode-status-preferences'
 export const DEFAULT_HOTKEY = 'Ctrl+Y+E+S'
 export type CollapsedMetric = 'usage' | 'subscription' | 'payg' | 'weekly_limit' | 'weekly_remaining' | 'total'
+export type TeamSectionId = 'memberQuota' | 'team' | 'teamQuota' | 'rpm'
 export const MAX_COLLAPSED_METRICS = 4
 export const DEFAULT_COLLAPSED_METRICS: CollapsedMetric[] = ['usage', 'subscription', 'weekly_limit']
+export const DEFAULT_REFRESH_INTERVAL_SECONDS = 60
+export const DEFAULT_RPM_REFRESH_INTERVAL_SECONDS = 15
+export const MIN_REFRESH_INTERVAL_SECONDS = 10
+export const MAX_REFRESH_INTERVAL_SECONDS = 3600
+export const DEFAULT_TEAM_SECTION_ORDER: TeamSectionId[] = ['memberQuota', 'teamQuota', 'rpm', 'team']
 const COLLAPSED_POOL: CollapsedMetric[] = ['usage', 'subscription', 'payg', 'weekly_limit', 'weekly_remaining', 'total']
+const TEAM_SECTION_POOL: TeamSectionId[] = ['memberQuota', 'team', 'teamQuota', 'rpm']
 
 export interface StoredConfig {
   apiToken: string
+  authToken: string
+  loginUsername: string
 }
 
 export interface UserPreferences {
@@ -20,6 +29,9 @@ export interface UserPreferences {
   compactFloatingMode: boolean
   language: 'zh' | 'en'
   hotkey: string
+  refreshIntervalSeconds: number
+  rpmRefreshIntervalSeconds: number
+  teamSectionOrder: TeamSectionId[]
   collapsedMetrics: CollapsedMetric[]
 }
 
@@ -27,7 +39,9 @@ export class ConfigService {
   private static instance: ConfigService
 
   public config = reactive<StoredConfig>({
-    apiToken: ''
+    apiToken: '',
+    authToken: '',
+    loginUsername: ''
   })
 
   public preferences = reactive<UserPreferences>({
@@ -38,6 +52,9 @@ export class ConfigService {
     compactFloatingMode: false,
     language: 'zh',
     hotkey: DEFAULT_HOTKEY,
+    refreshIntervalSeconds: DEFAULT_REFRESH_INTERVAL_SECONDS,
+    rpmRefreshIntervalSeconds: DEFAULT_RPM_REFRESH_INTERVAL_SECONDS,
+    teamSectionOrder: [...DEFAULT_TEAM_SECTION_ORDER],
     collapsedMetrics: [...DEFAULT_COLLAPSED_METRICS]
   })
 
@@ -65,8 +82,8 @@ export class ConfigService {
     } catch (error) {
       console.error('加载配置失败:', error)
     } finally {
-      this.isConfigured.value = !!this.config.apiToken?.trim()
-    }
+    this.isConfigured.value = !!this.config.apiToken?.trim()
+  }
   }
 
   private loadPreferences() {
@@ -76,9 +93,12 @@ export class ConfigService {
         const parsed = JSON.parse(saved)
         Object.assign(this.preferences, parsed)
       }
-      if (!this.preferences.hotkey) {
+      if (typeof this.preferences.hotkey !== 'string') {
         this.preferences.hotkey = DEFAULT_HOTKEY
       }
+      this.preferences.refreshIntervalSeconds = this.sanitizeRefreshInterval(this.preferences.refreshIntervalSeconds)
+      this.preferences.rpmRefreshIntervalSeconds = this.sanitizeRefreshInterval(this.preferences.rpmRefreshIntervalSeconds, DEFAULT_RPM_REFRESH_INTERVAL_SECONDS)
+      this.preferences.teamSectionOrder = this.sanitizeTeamSectionOrder(this.preferences.teamSectionOrder)
       this.preferences.collapsedMetrics = this.sanitizeCollapsedMetrics(this.preferences.collapsedMetrics)
     } catch (error) {
       console.error('加载偏好失败:', error)
@@ -103,6 +123,13 @@ export class ConfigService {
 
   public savePreferences(newPrefs: Partial<UserPreferences>) {
     Object.assign(this.preferences, newPrefs)
+    if (typeof this.preferences.hotkey !== 'string') {
+      this.preferences.hotkey = ''
+    }
+    this.preferences.hotkey = this.preferences.hotkey.trim()
+    this.preferences.refreshIntervalSeconds = this.sanitizeRefreshInterval(this.preferences.refreshIntervalSeconds)
+    this.preferences.rpmRefreshIntervalSeconds = this.sanitizeRefreshInterval(this.preferences.rpmRefreshIntervalSeconds, DEFAULT_RPM_REFRESH_INTERVAL_SECONDS)
+    this.preferences.teamSectionOrder = this.sanitizeTeamSectionOrder(this.preferences.teamSectionOrder)
     this.preferences.collapsedMetrics = this.sanitizeCollapsedMetrics(this.preferences.collapsedMetrics)
     localStorage.setItem(PREF_KEY, JSON.stringify(this.preferences))
   }
@@ -120,6 +147,8 @@ export class ConfigService {
     localStorage.removeItem(CONFIG_KEY)
     localStorage.removeItem(PREF_KEY)
     this.config.apiToken = ''
+    this.config.authToken = ''
+    this.config.loginUsername = ''
     this.preferences.theme = 'system'
     this.preferences.launchTaskbarPanel = true
     this.preferences.showFloatingBar = true
@@ -127,8 +156,33 @@ export class ConfigService {
     this.preferences.compactFloatingMode = false
     this.preferences.language = 'zh'
     this.preferences.hotkey = DEFAULT_HOTKEY
+    this.preferences.refreshIntervalSeconds = DEFAULT_REFRESH_INTERVAL_SECONDS
+    this.preferences.rpmRefreshIntervalSeconds = DEFAULT_RPM_REFRESH_INTERVAL_SECONDS
+    this.preferences.teamSectionOrder = [...DEFAULT_TEAM_SECTION_ORDER]
     this.preferences.collapsedMetrics = [...DEFAULT_COLLAPSED_METRICS]
     this.isConfigured.value = false
+  }
+
+  private sanitizeRefreshInterval(input?: unknown, fallback = DEFAULT_REFRESH_INTERVAL_SECONDS): number {
+    const numeric = Number(input)
+    if (!Number.isFinite(numeric)) {
+      return fallback
+    }
+    return Math.min(MAX_REFRESH_INTERVAL_SECONDS, Math.max(MIN_REFRESH_INTERVAL_SECONDS, Math.round(numeric)))
+  }
+
+  private sanitizeTeamSectionOrder(input?: unknown): TeamSectionId[] {
+    if (!Array.isArray(input)) {
+      return [...DEFAULT_TEAM_SECTION_ORDER]
+    }
+
+    const filtered = input
+      .map(item => (TEAM_SECTION_POOL.includes(item as TeamSectionId) ? (item as TeamSectionId) : null))
+      .filter((item): item is TeamSectionId => item !== null)
+
+    const unique = [...new Set(filtered)]
+    const missing = TEAM_SECTION_POOL.filter(item => !unique.includes(item))
+    return [...unique, ...missing]
   }
 
   private sanitizeCollapsedMetrics(input?: unknown): CollapsedMetric[] {

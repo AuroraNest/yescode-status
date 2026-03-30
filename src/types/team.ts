@@ -66,10 +66,23 @@ export interface TeamUsageSummary {
   total_cost: number
 }
 
+export interface TeamMemberUsageSummary {
+  team_member_id?: number
+  user_id?: number
+  username?: string
+  total_requests: number
+  total_cost: number
+  total_input_tokens: number
+  total_output_tokens: number
+  daily_usage?: unknown[]
+  model_stats?: unknown[]
+}
+
 export interface TeamUsage {
   period: string
   total_count: number
   summary: TeamUsageSummary[]
+  memberStats: TeamMemberUsageSummary[]
 }
 
 export interface TeamMetrics {

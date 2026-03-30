@@ -22,7 +22,6 @@ const PANEL_BOUNDS = { width: 360, height: 520 }
 
 const isMac = process.platform === 'darwin'
 let isQuitting = false
-const DEFAULT_HOTKEY = 'Ctrl+Y+E+S'
 
 let win: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -30,7 +29,7 @@ let trayBaseIcon: NativeImage | null = null
 let registeredAccels: string[] = []
 let hotkeyProgress = 0
 let hotkeyTimer: NodeJS.Timeout | null = null
-let lastHotkeyRaw = DEFAULT_HOTKEY
+let lastHotkeyRaw = ''
 let parsedHotkey: HotkeyParseResult | null = null
 
 // 查找托盘图标
@@ -268,6 +267,12 @@ function registerGlobalHotkey(raw: string) {
   registeredAccels = []
   resetHotkeyProgress()
 
+  if (!raw.trim()) {
+    parsedHotkey = null
+    lastHotkeyRaw = ''
+    return { success: true }
+  }
+
   const next = parseHotkey(raw)
   if (!next.ok) {
     console.warn('无法解析快捷键：', next.error)
@@ -276,7 +281,12 @@ function registerGlobalHotkey(raw: string) {
   }
 
   parsedHotkey = next
-  lastHotkeyRaw = raw
+  lastHotkeyRaw = raw.trim()
+
+  if (!next.sequence.length) {
+    parsedHotkey = null
+    return { success: true }
+  }
 
   next.sequence.forEach((key, index) => {
     const accelerator = [...next.modifiers, key].join('+')
@@ -325,7 +335,7 @@ ipcMain.handle('update-tray-tooltip', (_event, payload: { total: number; usage: 
 })
 
 ipcMain.handle('set-global-hotkey', (_event, hotkey: string) => {
-  const target = typeof hotkey === 'string' && hotkey.trim() ? hotkey : DEFAULT_HOTKEY
+  const target = typeof hotkey === 'string' ? hotkey : ''
   return registerGlobalHotkey(target)
 })
 

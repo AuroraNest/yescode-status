@@ -16,7 +16,7 @@
 
 1. swagger 导出的很多路径写成 `/auth/profile`、`/user/team` 这种相对路径，但页面真实请求实际都带 `/api/v1` 前缀。本文统一按实际调用地址写成完整路径，例如 `GET /api/v1/auth/profile`。
 2. swagger 的 operation 上引用了 `UserApiKey`、`UserToken`、`TeamApiKey` 三类鉴权，但导出的 JSON 里没有 `securityDefinitions`，所以鉴权方案要结合页面真实请求理解。
-3. 当前仓库前端仍在调用 `GET /api/v1/user/balance` 和 `PUT /api/v1/user/balance-preference`，但这两个接口不在当前 swagger 导出中，本文会单独标成“非 swagger 覆盖接口”。
+3. 当前仓库前端仍在调用 `GET /api/v1/user/balance`、`PUT /api/v1/user/balance-preference` 和 `GET /api/v1/user/rate-limit`，但这三个接口不在当前 swagger 导出中，本文会单独标成“非 swagger 覆盖接口”。
 
 ## 3. 鉴权约定
 
@@ -35,6 +35,14 @@ X-API-Key: <user_token_or_api_key>
 Accept: application/json
 Content-Type: application/json
 ```
+
+对当前项目新增的 RPM 查询，已经确认存在一条稳定链路：
+
+1. 先在已登录状态下调用 `GET /api/v1/auth/profile`
+2. 从响应中取出 `api_key`
+3. 再使用 `Authorization: Bearer <api_key>` 与 `X-API-Key: <api_key>` 调用 `GET /api/v1/user/rate-limit`
+
+这个接口无查询参数，返回的是当前用户实时 RPM 窗口状态，而不是团队限额配置。
 
 ### 3.2 团队接口
 
@@ -70,6 +78,12 @@ swagger 共导出 55 个 operation，主要分成这些组：
 | `PUT` | `/api/v1/user/accent-color` | 更新强调色偏好 | 是 |
 | `GET` | `/api/v1/user/balance` | 获取余额摘要 | 否 |
 | `PUT` | `/api/v1/user/balance-preference` | 更新扣费偏好 | 否 |
+| `GET` | `/api/v1/user/rate-limit` | 获取当前 RPM 窗口状态 | 否 |
+
+补充：
+
+- 当前项目的个人页和团队页都会优先复用 `GET /api/v1/user/rate-limit` 来展示实时 RPM。
+- 这个接口展示的是“当前窗口内的真实请求计数”，不是团队限额配置。
 
 ### 5.2 团队视图相关
 
@@ -87,6 +101,11 @@ swagger 共导出 55 个 operation，主要分成这些组：
 | `PUT` | `/api/v1/user/team/owner/members/{member_id}` | owner 更新成员额度 | 用户 key / 用户登录态 |
 | `DELETE` | `/api/v1/user/team/owner/members/{member_id}` | owner 移除成员 | 用户 key / 用户登录态 |
 | `POST` | `/api/v1/user/team/purchase-ownership` | 购买团队 owner 资格 | 用户 key / 用户登录态 |
+
+补充说明：
+
+- 当前项目团队页已经改为优先展示 `GET /api/v1/user/rate-limit` 返回的真实个人 RPM。
+- 当 `user/rate-limit` 暂时不可用时，才回退展示 `team/stats/spending` 的团队限额配置。
 
 ## 6. 重点接口说明
 
@@ -498,6 +517,7 @@ swagger 说明：
 - [src/services/apiService.ts](/Users/aurora/project/Aurora/yescode-status/src/services/apiService.ts)
   - `GET /api/v1/user/balance`
   - `PUT /api/v1/user/balance-preference`
+  - `GET /api/v1/user/rate-limit`
 
 其中 `GET /api/v1/user/balance` 已从页面真实请求确认返回这些顶层字段：
 
@@ -518,6 +538,29 @@ swagger 说明：
 
 - `subscription_first`
 - `payg_only`
+
+而 `GET /api/v1/user/rate-limit` 已从页面和 API Key 实测确认返回这些顶层字段：
+
+- `current_rate`
+- `custom_limit_enabled`
+- `custom_rpm`
+- `remaining`
+- `rpm_limit`
+- `using_default`
+- `window_seconds`
+
+页面可行链路也已经确认：
+
+1. 在已登录状态下调用 `GET /api/v1/auth/profile`
+2. 从返回中取 `api_key`
+3. 使用 `Authorization: Bearer <api_key>` 和 `X-API-Key: <api_key>` 调 `GET /api/v1/user/rate-limit`
+4. 可正常返回当前 RPM 窗口数据
+
+补充结论：
+
+- 无查询参数
+- 浏览器登录态和 API Key 鉴权都可以调用
+- 语义是“当前用户当前窗口的实时 RPM 状态”，不是静态限额配置
 
 这两个接口不在当前 swagger 导出里，所以：
 

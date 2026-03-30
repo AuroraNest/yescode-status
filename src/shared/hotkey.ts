@@ -69,7 +69,13 @@ function normalizeKeyToken(token: string): string | null {
 export function parseHotkey(rawInput: string): HotkeyParseOutcome {
   const input = rawInput?.trim()
   if (!input) {
-    return { ok: false, error: '请输入快捷键，例如 Ctrl+Y+E+S' }
+    return {
+      ok: true,
+      raw: '',
+      modifiers: [],
+      sequence: [],
+      display: '已禁用'
+    }
   }
 
   const tokens = input.split('+').map(token => token.trim()).filter(Boolean)

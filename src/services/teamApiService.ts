@@ -3,9 +3,11 @@
  */
 import type { TeamInfo, TeamSnapshot, TeamSpending, TeamUsage, TeamMetrics } from '../types'
 import { detectTokenMode } from '../shared/tokenMode'
+import { configService } from './configService'
 
 const API_BASE = 'https://co.yes.vg/api/v1'
 const TEAM_ENDPOINT = `${API_BASE}/user/team`
+const USER_TEAM_USAGE_ENDPOINT = `${API_BASE}/user/team/usage?period=1week`
 const TEAM_SPENDING_ENDPOINT = `${API_BASE}/team/stats/spending`
 const TEAM_USAGE_ENDPOINT = `${API_BASE}/team/stats/usage?period=week&limit=10&offset=0`
 
@@ -33,8 +35,10 @@ interface RawTeamInfoResponse {
   owner_enabled: boolean
   role: string
   team: RawTeamDetails
+  team_api_key?: string
   team_daily_balance: number
   team_daily_remaining_balance: number
+  member_week_spend?: number
   team_monthly_limit: number
   team_week_spend: number
   weekly_limit: number
@@ -45,6 +49,12 @@ interface RawTeamUsageResponse {
   period: string
   total_count: number
   summary: TeamUsage['summary']
+}
+
+interface RawUserTeamUsageResponse {
+  period: string
+  member_stats?: TeamUsage['memberStats']
+  team_stats?: TeamUsage['summary']
 }
 
 class TeamApiService {
@@ -63,19 +73,18 @@ class TeamApiService {
     }
 
     const mode = detectTokenMode(token)
-    if (mode === 'personal') {
-      throw new Error('当前为个人 Token，请使用个人接口')
-    }
     if (mode === 'unknown') {
       throw new Error('不支持的 Token 类型，请使用 cr_、team_ 或 team- 开头的 Token')
     }
 
+    const authToken = configService.config.authToken?.trim() || token
+
     return {
       accept: 'application/json',
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${authToken}`,
       'X-API-Key': token,
-      'User-Agent': 'yescode-status/3.0'
+      'User-Agent': 'yescode-status/2.0'
     }
   }
 
@@ -126,7 +135,7 @@ class TeamApiService {
       planName: provider ? provider.toUpperCase() : 'TEAM',
       dailyBalance: raw.daily_balance,
       dailyRemainingBalance: raw.daily_remaining_balance,
-      currentWeekSpend: raw.current_week_spend,
+      currentWeekSpend: raw.member_week_spend ?? raw.current_week_spend,
       currentMonthSpend: raw.current_month_spend,
       weeklyLimit: raw.weekly_limit,
       weeklyLimitOverride: raw.weekly_limit_override,
@@ -187,10 +196,29 @@ class TeamApiService {
   }
 
   public fetchTeamSpending(token: string) {
-    return this.request<TeamSpending>(TEAM_SPENDING_ENDPOINT, token)
+    return this.request<TeamSpending>(TEAM_SPENDING_ENDPOINT, token).catch((error: unknown) => {
+      if (error instanceof Error && /请求失败:\s*(401|403|404)\b/.test(error.message)) {
+        return null
+      }
+      throw error
+    })
   }
 
   public async fetchTeamUsage(token: string): Promise<TeamUsage | null> {
+    const mode = detectTokenMode(token)
+    if (mode === 'personal') {
+      const raw = await this.request<RawUserTeamUsageResponse>(USER_TEAM_USAGE_ENDPOINT, token)
+      if (!raw) {
+        return null
+      }
+      return {
+        period: raw.period,
+        total_count: raw.member_stats?.length ?? 0,
+        summary: raw.team_stats ?? [],
+        memberStats: raw.member_stats ?? []
+      }
+    }
+
     const raw = await this.request<RawTeamUsageResponse>(TEAM_USAGE_ENDPOINT, token)
     if (!raw) {
       return null
@@ -198,11 +226,40 @@ class TeamApiService {
     return {
       period: raw.period,
       total_count: raw.total_count,
-      summary: raw.summary
+      summary: raw.summary,
+      memberStats: []
     }
   }
 
   public async fetchTeamSnapshot(token: string): Promise<TeamSnapshot> {
+    if (detectTokenMode(token) === 'personal') {
+      const rawInfo = await this.fetchTeamInfo(token)
+      const info = this.toTeamInfo(rawInfo)
+      if (!info) {
+        return {
+          hasTeam: false,
+          info: null,
+          spending: null,
+          usage: null,
+          metrics: null
+        }
+      }
+
+      const [spending, usage] = await Promise.all([
+        this.fetchPersonalTeamSpending(rawInfo),
+        this.fetchTeamUsage(token)
+      ])
+      const metrics = this.toMetrics(info)
+
+      return {
+        hasTeam: true,
+        info,
+        spending,
+        usage,
+        metrics
+      }
+    }
+
     const [rawInfo, spending, usage] = await Promise.all([
       this.fetchTeamInfo(token),
       this.fetchTeamSpending(token),
@@ -218,6 +275,20 @@ class TeamApiService {
       spending,
       usage,
       metrics
+    }
+  }
+
+  private async fetchPersonalTeamSpending(rawInfo: RawTeamInfoResponse | null): Promise<TeamSpending | null> {
+    const teamApiKey = rawInfo?.team_api_key?.trim()
+    if (!teamApiKey) {
+      return null
+    }
+
+    try {
+      return await this.fetchTeamSpending(teamApiKey)
+    } catch (error) {
+      console.warn('团队速率限制查询失败，已忽略该数据块', error)
+      return null
     }
   }
 }
