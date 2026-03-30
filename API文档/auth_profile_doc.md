@@ -48,7 +48,7 @@ curl -X GET "https://api.example.com/auth/profile" \
   "pay_as_you_go_balance": 74.8,
   "pending_team_plan_days": 0,
   "pending_team_plan_id": null,
-  "referral_code": "your-username",
+  "referral_code": "your-referral-code",
   "referred_by_user_id": null,
   "subscription_balance": 54.68403317500002,
   "subscription_expiry": "2026-01-01T08:00:00+08:00",
